@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from typing import List, Optional
 
@@ -11,11 +12,14 @@ class Settings(BaseSettings):
     gemini_timeout: int = 15
     llm_strategy: str = "local_first"
     cloud_fallback: bool = True
-    allowed_origins: str = "http://localhost:3000"
+    allowed_origins: List[str] = ["http://localhost:3000"]
 
-    @property
-    def cors_origins(self) -> List[str]:
-        return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_origins(cls, v):
+        if isinstance(v, str):
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v
 
     class Config:
         env_file = ".env"
