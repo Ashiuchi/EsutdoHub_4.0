@@ -95,6 +95,10 @@ class SubtractiveAgent:
         stripped, table_fragments = self.strip_tables(md)
         stripped, pattern_fragments = self.strip_patterns(stripped)
         all_fragments = {**table_fragments, **pattern_fragments}
+        
+        # Enriquecer com links e e-mails
+        metadata_extras = self._extract_metadata(md)
+        all_fragments.update(metadata_extras)
 
         reduction = len(md) - len(stripped)
         logger.info(
@@ -103,6 +107,21 @@ class SubtractiveAgent:
             f"{len(pattern_fragments)} patterns)"
         )
         return stripped, all_fragments
+
+    def _extract_metadata(self, md_content: str) -> Dict[str, Any]:
+        """Extrai URLs e e-mails do markdown original."""
+        # Regex para URLs (http/https)
+        url_pattern = r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+[/\w\.-]*(?:\?\S+)?'
+        # Regex para e-mails
+        email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+
+        urls = re.findall(url_pattern, md_content)
+        emails = re.findall(email_pattern, md_content)
+
+        return {
+            "links": sorted(list(set(urls))),
+            "contact_emails": sorted(list(set(emails)))
+        }
 
     def _suppress_noise(self, md_content: str) -> str:
         """Remove cabeçalhos e rodapés repetitivos (ruído) do markdown.
