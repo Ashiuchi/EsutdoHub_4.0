@@ -1,9 +1,21 @@
 import json
 import logging
 import re
-from typing import Dict, Tuple
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, Tuple, Any
 
 logger = logging.getLogger(__name__)
+
+STORAGE_BASE = Path("storage/processed")
+
+@dataclass
+class StorageResult:
+    """Resultado da operação de persistência do SubtractiveAgent."""
+    content_hash: str
+    stripped_md: str
+    tables: Dict[str, str] = field(default_factory=dict)
+    patterns: Dict[str, Any] = field(default_factory=dict)
 
 # Matches one or more consecutive lines that start (after optional whitespace) with |
 _TABLE_RE = re.compile(r'(?m)(?:^[ \t]*\|[^\n]*(?:\n|$))+')
@@ -87,3 +99,47 @@ class SubtractiveAgent:
             f"{len(pattern_fragments)} patterns)"
         )
         return stripped, all_fragments
+
+    def persist(self, result: StorageResult, storage_base: Path = STORAGE_BASE) -> str:
+        """Persiste os artefatos em storage_base/{content_hash}/.
+
+        Cria:
+            {content_hash}/main.md        — texto limpo
+            {content_hash}/tables/        — tabelas individuais
+            {content_hash}/metadata.json  — padrões extraídos
+
+        Args:
+            result: Objeto StorageResult com os dados processados.
+            storage_base: Diretório raiz para armazenamento.
+
+        Returns:
+            Caminho absoluto da pasta criada como string.
+        """
+        storage_path = Path(storage_base).resolve() / result.content_hash
+        tables_dir = storage_path / "tables"
+
+        storage_path.mkdir(parents=True, exist_ok=True)
+        tables_dir.mkdir(exist_ok=True)
+
+        # Salvar texto limpo
+        (storage_path / "main.md").write_text(result.stripped_md, encoding="utf-8")
+
+        # Salvar tabelas
+        table_keys = sorted(result.tables.keys())
+        for i, key in enumerate(table_keys):
+            table_path = tables_dir / f"tabela_{i}.md"
+            table_path.write_text(result.tables[key], encoding="utf-8")
+
+        # Salvar metadados
+        metadata = {
+            "content_hash": result.content_hash,
+            "patterns": result.patterns,
+            "table_count": len(result.tables)
+        }
+        (storage_path / "metadata.json").write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2), 
+            encoding="utf-8"
+        )
+
+        logger.info(f"persist: {result.content_hash} → {storage_path} ({len(result.tables)} tables)")
+        return str(storage_path)
