@@ -2,7 +2,9 @@ import json
 import logging
 import re
 import io
+import math
 import pandas as pd
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Tuple, Any
@@ -102,6 +104,41 @@ class SubtractiveAgent:
         )
         return stripped, all_fragments
 
+    def _suppress_noise(self, md_content: str) -> str:
+        """Remove cabeçalhos e rodapés repetitivos (ruído) do markdown.
+        
+        Usa frequência de linhas em 'páginas' (separadas por --- ou \n\n).
+        """
+        # Identificar separador de página (preferir --- se existir)
+        page_sep = "\n---\n" if "\n---\n" in md_content else "\n\n"
+        pages = [p.strip() for p in md_content.split(page_sep) if p.strip()]
+        n_pages = len(pages)
+        
+        if n_pages < 3:
+            return md_content
+
+        # Contar ocorrências de cada linha por página (para evitar contar 10x na mesma pág)
+        line_counts = Counter()
+        for page in pages:
+            unique_lines = set(l.strip() for l in page.splitlines() if len(l.strip()) >= 5)
+            for line in unique_lines:
+                line_counts[line] += 1
+
+        # Identificar ruído: aparece em >= 30% das páginas E >= 3 vezes
+        threshold = max(3, math.ceil(n_pages * 0.30))
+        noisy_lines = {line for line, count in line_counts.items() if count >= threshold}
+
+        if noisy_lines:
+            logger.info(f"suppress_noise: identificadas {len(noisy_lines)} linhas de ruído.")
+
+        # Reconstruir o texto removendo as linhas ruidosas
+        clean_pages = []
+        for page in pages:
+            clean_lines = [l for l in page.splitlines() if l.strip() not in noisy_lines]
+            clean_pages.append("\n".join(clean_lines))
+
+        return page_sep.join(clean_pages)
+
     def _format_table_md(self, raw_table_md: str) -> str:
         """Reformata uma tabela markdown bruta usando pandas para alinhamento e limpeza.
         
@@ -163,8 +200,9 @@ class SubtractiveAgent:
         storage_path.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(exist_ok=True)
 
-        # Salvar texto limpo
-        (storage_path / "main.md").write_text(result.stripped_md, encoding="utf-8")
+        # Suprimir ruído e salvar texto limpo
+        clean_md = self._suppress_noise(result.stripped_md)
+        (storage_path / "main.md").write_text(clean_md, encoding="utf-8")
 
         # Salvar tabelas
         table_keys = sorted(result.tables.keys())
