@@ -6,14 +6,14 @@ setup_logging()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import router as api_router
+from app.core.config import settings
 import uvicorn
 
 app = FastAPI(title='EstudoHub Pro API')
 
-# Configuração de CORS para o Next.js
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['*'],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],

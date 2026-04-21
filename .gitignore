@@ -1,0 +1,26 @@
+# Environment — NUNCA commitar chaves reais
+.env
+.env.local
+.env.*.local
+
+# Debug artifacts
+backend/debug/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Node
+node_modules/
+.next/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
