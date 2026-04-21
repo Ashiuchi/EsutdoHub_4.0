@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class OllamaProvider(BaseLLMProvider):
     """Local Ollama LLM provider"""
 
-    def __init__(self, base_url: str = None, model: str = "llama3:8b", timeout: int = None):
+    def __init__(self, base_url: str = None, model: str = "llama3.1:8b", timeout: int = None):
         self.base_url = base_url or settings.ollama_url
         self.model = model
         self.timeout = timeout or settings.ollama_timeout

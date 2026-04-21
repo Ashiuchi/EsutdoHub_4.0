@@ -18,7 +18,7 @@ async def test_ollama_provider_initialization():
     """OllamaProvider should initialize with correct defaults"""
     provider = OllamaProvider()
     assert provider.base_url == settings.ollama_url
-    assert provider.model == "llama3:8b"
+    assert provider.model == "llama3.1:8b"
     assert provider.timeout == settings.ollama_timeout
 
 

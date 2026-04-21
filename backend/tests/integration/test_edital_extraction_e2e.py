@@ -12,7 +12,7 @@ async def test_extract_edital_from_markdown():
     """E2E test: Extract edital from markdown using local Llama 3 via Ollama"""
     # Note: This test requires:
     # 1. Ollama running locally at http://localhost:11434
-    # 2. llama3:8b model downloaded (ollama pull llama3:8b)
+    # 2. llama3.1:8b model downloaded (ollama pull llama3.1:8b)
     # 3. LLM_STRATEGY=local_first in environment
 
     service = AIService()

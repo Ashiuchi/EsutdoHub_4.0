@@ -1,3 +1,6 @@
+# Claude Code internals
+.claudeignore/
+
 # Environment — NUNCA commitar chaves reais
 .env
 .env.local
