@@ -9,26 +9,34 @@ ai_service = AIService()
 
 @router.post('/upload')
 async def upload_edital(file: UploadFile = File(...)):
-    # 1. Salvar arquivo temporariamente no WSL
+    """
+    Endpoint principal para upload e extração de dados de editais.
+    """
     temp_path = f'temp_{file.filename}'
     with open(temp_path, 'wb') as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        # 2. Converter PDF para Markdown com o 'olho' do sistema
+        # Converter PDF para Markdown
         md_content = PDFService.to_markdown(temp_path)
 
-        # 3. Extrair dados estruturados com o 'cérebro' Gemini
+        # Extrair dados estruturados (Failover local/cloud automático)
         result = await ai_service.extract_edital_data(md_content)
 
-        # 4. Debug: Salvar JSON para conferência (conforme pedido pelo Arquiteto)
+        # Salvamento de debug (Útil para validação técnica)
         os.makedirs('debug', exist_ok=True)
-        with open(f'debug/{file.filename}.json', 'w', encoding='utf-8') as f:
+        debug_file = f'debug/{file.filename}.json'
+        with open(debug_file, 'w', encoding='utf-8') as f:
             f.write(result.model_dump_json(indent=2))
+        
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log detalhado no servidor, erro genérico para o cliente por segurança
+        print(f"Erro no processamento do edital: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Falha ao processar o edital: {str(e)}"
+        )
     finally:
-        # Limpar rastro temporário
         if os.path.exists(temp_path):
             os.remove(temp_path)

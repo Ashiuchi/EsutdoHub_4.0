@@ -1,6 +1,5 @@
 import logging
-from typing import Type, TypeVar, List
-from pydantic import BaseModel
+from typing import TypeVar, List
 
 from app.core.config import settings
 from app.providers.ollama_provider import OllamaProvider
@@ -8,7 +7,7 @@ from app.providers.gemini_provider import GeminiProvider
 from app.providers.base_provider import BaseLLMProvider
 from app.schemas.edital_schema import EditalGeral
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar('T')
 logger = logging.getLogger(__name__)
 
 
