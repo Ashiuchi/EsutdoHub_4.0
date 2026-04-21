@@ -1,6 +1,8 @@
 import json
 import logging
 import re
+import io
+import pandas as pd
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Tuple, Any
@@ -100,6 +102,46 @@ class SubtractiveAgent:
         )
         return stripped, all_fragments
 
+    def _format_table_md(self, raw_table_md: str) -> str:
+        """Reformata uma tabela markdown bruta usando pandas para alinhamento e limpeza.
+        
+        Inclui fallback para o original em caso de erro de parsing.
+        """
+        try:
+            # Limpeza básica: remover linhas vazias
+            lines = [l.strip() for l in raw_table_md.strip().splitlines() if l.strip()]
+            if len(lines) < 2:
+                return raw_table_md
+
+            # Remover linha de separadores (---) para facilitar o parsing do pandas
+            # Geralmente é a segunda linha
+            content_lines = []
+            for i, line in enumerate(lines):
+                if i == 1 and all(c in '|- : \t' for c in line) and '-' in line:
+                    continue
+                content_lines.append(line)
+
+            # Ler com pandas
+            df = pd.read_csv(
+                io.StringIO('\n'.join(content_lines)),
+                sep='|',
+                skipinitialspace=True
+            )
+
+            # Remover colunas "Unnamed" que surgem de pipes nas extremidades
+            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+            
+            # Limpeza de strings em todas as células
+            df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+            
+            # Limpeza dos nomes das colunas
+            df.columns = [c.strip() for c in df.columns]
+
+            return df.to_markdown(index=False)
+        except Exception as e:
+            logger.warning(f"Falha ao formatar tabela com pandas ({e}). Usando raw.")
+            return raw_table_md
+
     def persist(self, result: StorageResult, storage_base: Path = STORAGE_BASE) -> str:
         """Persiste os artefatos em storage_base/{content_hash}/.
 
@@ -128,7 +170,8 @@ class SubtractiveAgent:
         table_keys = sorted(result.tables.keys())
         for i, key in enumerate(table_keys):
             table_path = tables_dir / f"tabela_{i}.md"
-            table_path.write_text(result.tables[key], encoding="utf-8")
+            formatted_table = self._format_table_md(result.tables[key])
+            table_path.write_text(formatted_table, encoding="utf-8")
 
         # Salvar metadados
         metadata = {
