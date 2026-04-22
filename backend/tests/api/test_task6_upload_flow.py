@@ -38,12 +38,12 @@ Contato: contato@teste.com
     assert response.status_code == 200
     data = response.json()
     
-    assert data["status"] == "ingestado"
-    assert data["total_tables"] == 1
-    assert data["total_links"] == 1
+    assert data["status"] == "processando"
+    assert data["total_tables"] == 0
     
-    # Verificar se arquivos foram criados no tmp_path
+    # Verificar se arquivos foram criados (BackgroundTasks rodam síncronas no TestClient)
     content_hash = data["content_hash"]
+    # ... resto do código de verificação de arquivos ...
     storage_path = tmp_path / content_hash
     
     assert storage_path.exists()

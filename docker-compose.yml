@@ -1,6 +1,15 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: estudohub_admin
+      POSTGRES_PASSWORD: dev_secret_vault_99
+      POSTGRES_DB: estudohub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build: ./backend
     volumes:
@@ -11,7 +20,9 @@ services:
       - ./backend/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: always
     depends_on:
+      - db
       - cache
 
   frontend:
@@ -28,3 +39,6 @@ services:
     image: redis:alpine
     ports:
       - "6379:6379"
+
+volumes:
+  postgres_data:

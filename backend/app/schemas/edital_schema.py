@@ -18,21 +18,38 @@ class Materia(BaseModel):
 
 class Cargo(BaseModel):
     titulo: str
-    vagas_ampla: int
-    vagas_cotas: int
-    salario: float
-    requisitos: str
-    status: str = Field(default='extraido', description='Status comercial do cargo')
+    codigo_edital: Optional[str] = None
+    vagas_ac: Optional[int] = 0
+    vagas_cr: Optional[int] = 0
+    vagas_pcd: Optional[int] = 0
+    vagas_negros: Optional[int] = 0
+    vagas_indigenas: Optional[int] = 0
+    vagas_trans: Optional[int] = 0
+    vagas_total: Optional[int] = 0
+    salario: Optional[float] = 0.0
+    escolaridade: Optional[str] = "Pendente"
+    area: Optional[str] = "Pendente"
+    atribuicoes: Optional[str] = "Pendente"
+    requisitos: Optional[str] = "Pendente"
+    lotation_cities: Optional[str] = "Pendente"
+    jornada: Optional[str] = "Pendente"
+    status: str = Field(default='identificado', description='Status comercial do cargo')
     price: float = Field(default=0.0, description='Preço de acesso ao conteúdo do cargo')
-    materias: List[Materia] = Field(description='Lista de matérias exigidas para este cargo específico')
+    materias: List[Materia] = Field(default=[], description='Lista de matérias exigidas para este cargo específico')
 
 class EditalGeral(BaseModel):
+    title: Optional[str] = "Pendente"
     orgao: str
     banca: str
-    data_prova: Optional[str]
-    periodo_inscricao: Optional[str]
-    link_edital: Optional[str]
-    cargos: List[Cargo]
+    published_at: Optional[str] = "Pendente"
+    inscription_start: Optional[str] = "Pendente"
+    inscription_end: Optional[str] = "Pendente"
+    payment_deadline: Optional[str] = "Pendente"
+    fee: Optional[float] = 0.0
+    exam_cities: Optional[str] = "Pendente"
+    data_prova: Optional[str] = "Pendente"
+    link_edital: Optional[str] = None
+    cargos: List[Cargo] = []
 
 
 class EditalResponse(EditalGeral):
@@ -41,11 +58,17 @@ class EditalResponse(EditalGeral):
     status: str = StatusEdital.INGESTADO
 
 
+class CargoIdentificado(BaseModel):
+    titulo: str
+    codigo_edital: Optional[str] = None
+
 class IngestionResponse(BaseModel):
     """Resposta simplificada após a ingestão e persistência do edital."""
     id: uuid.UUID
     content_hash: str
     status: str
-    total_tables: int
-    total_links: int
-    total_chars: int
+    total_tables: Optional[int] = 0
+    total_links: Optional[int] = 0
+    total_chars: Optional[int] = 0
+    edital: Optional[EditalGeral] = None
+    cargos: List[Cargo] = []

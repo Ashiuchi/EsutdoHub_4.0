@@ -57,5 +57,5 @@ class OllamaProvider(BaseLLMProvider):
             logger.info(f"OllamaProvider: Successfully validated response for {schema.__name__}")
             return result
         except Exception as e:
-            logger.error(f"OllamaProvider: Validation failed - {e}")
+            logger.error(f"OllamaProvider: Validation failed - {e}. Raw response: {response_text[:1000]}")
             raise

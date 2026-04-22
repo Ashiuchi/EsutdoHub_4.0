@@ -5,6 +5,7 @@ from typing import List, Optional
 
 class Settings(BaseSettings):
     gemini_api_key: Optional[str] = None
+    database_url: str = "sqlite:///./dev.db"
     debug: bool = False
     use_local_llm: bool = True
     ollama_url: str = "http://host.docker.internal:11434"
@@ -25,6 +26,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"
 
 
 settings = Settings()

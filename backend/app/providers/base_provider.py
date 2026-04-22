@@ -32,16 +32,7 @@ class BaseLLMProvider(ABC):
     def _validate_json_response(self, response_text: str, schema: Type[T]) -> T:
         """
         Parse and validate JSON response against Pydantic schema.
-
-        Args:
-            response_text: Raw text response from LLM
-            schema: Pydantic model class to validate against
-
-        Returns:
-            Validated instance of schema
-
-        Raises:
-            ValidationError: If JSON doesn't match schema
+        Includes "Lenient Parsing" to handle common LLM key naming mismatches.
         """
         import json
 
@@ -53,6 +44,24 @@ class BaseLLMProvider(ABC):
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error: {e}\nResponse was: {cleaned[:200]}")
             raise ValueError(f"Invalid JSON response: {e}")
+
+        # --- Lenient Parsing Logic ---
+        # Map common mismatches between LLM output and our Pydantic schemas
+        aliases = {
+            "edital_info": ["edital", "edital_geral", "info"],
+            "cargos": ["cargos_extraidos", "lista_cargos"],
+            "materias": ["conteudo", "disciplinas"],
+            "topicos": ["assuntos", "lista_topicos"]
+        }
+
+        if isinstance(data, dict):
+            for target_key, possible_aliases in aliases.items():
+                if target_key not in data:
+                    for alias in possible_aliases:
+                        if alias in data:
+                            logger.info(f"Lenient Parsing: Mapping alias '{alias}' to target key '{target_key}'")
+                            data[target_key] = data.pop(alias)
+                            break
 
         try:
             return schema(**data)
