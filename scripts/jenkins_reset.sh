@@ -4,7 +4,8 @@ set -euo pipefail
 echo "==> Stopping Jenkins container..."
 docker compose -f docker-compose.jenkins.yml down --remove-orphans
 
-echo "==> Removing old Jenkins image (if any)..."
+echo "==> Removing old Jenkins image and container (if any)..."
+docker rm -f jenkins 2>/dev/null || true
 docker image rm -f "$(docker compose -f docker-compose.jenkins.yml images -q jenkins 2>/dev/null)" 2>/dev/null || true
 
 echo "==> Building new Jenkins image..."

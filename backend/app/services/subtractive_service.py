@@ -198,7 +198,7 @@ class SubtractiveAgent:
             logger.warning(f"Falha ao formatar tabela com pandas ({e}). Usando raw.")
             return raw_table_md
 
-    def persist(self, result: StorageResult, storage_base: Path = STORAGE_BASE) -> str:
+    def persist(self, result: StorageResult, storage_base: Path = None) -> str:
         """Persiste os artefatos em storage_base/{content_hash}/.
 
         Cria:
@@ -213,6 +213,8 @@ class SubtractiveAgent:
         Returns:
             Caminho absoluto da pasta criada como string.
         """
+        if storage_base is None:
+            storage_base = STORAGE_BASE
         storage_path = Path(storage_base).resolve() / result.content_hash
         tables_dir = storage_path / "tables"
 

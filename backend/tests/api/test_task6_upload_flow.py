@@ -31,7 +31,7 @@ Contato: contato@teste.com
         # Simular upload
         pdf_content = b"%PDF-1.4 test content"
         response = client.post(
-            "/upload",
+            "/api/v1/upload",
             files={"file": ("test.pdf", pdf_content, "application/pdf")}
         )
         

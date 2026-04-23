@@ -1,9 +1,11 @@
 pipeline {
     agent {
         node {
+            label 'built-in'
             customWorkspace '/mnt/d/DevOps/EstudoHub_4.0'
         }
     }
+
 
     environment {
         VAULT_ADDR  = "http://host.docker.internal:8205"

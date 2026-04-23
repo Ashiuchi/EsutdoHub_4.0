@@ -1,0 +1,12 @@
+{
+  "content_hash": "73caebc6e2aa8f9a7b950993208eb7ac8c380a5d8064d055735d899e8d730ec3",
+  "patterns": {
+    "links": [
+      "http://teste.com"
+    ],
+    "contact_emails": [
+      "contato@teste.com"
+    ]
+  },
+  "table_count": 1
+}

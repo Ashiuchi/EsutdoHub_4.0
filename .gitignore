@@ -5,6 +5,7 @@
 .env
 .env.local
 .env.*.local
+.env.sonar
 
 # Debug artifacts
 backend/debug/
@@ -27,3 +28,11 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# Vault
+.vault_keys.txt
+vault/data/*
+!vault/data/.gitkeep
+
+# Jenkins
+jenkins_data/

@@ -1,0 +1,31 @@
+services:
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault
+    restart: always
+    ports:
+      - "8205:8200"
+    environment:
+      VAULT_LOCAL_CONFIG: |
+        {
+          "storage": {
+            "file": {
+              "path": "/vault/file"
+            }
+          },
+          "listener": {
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_disable": 1
+            }
+          },
+          "ui": true,
+          "disable_mlock": true
+        }
+    user: root
+    volumes:
+      - vault_data:/vault/file
+    command: server
+
+volumes:
+  vault_data:

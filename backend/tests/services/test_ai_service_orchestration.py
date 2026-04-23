@@ -79,7 +79,7 @@ async def test_ai_service_local_only_fails_without_fallback():
         with patch.object(service.ollama_provider, 'generate_json', new_callable=AsyncMock) as mock_ollama:
             mock_ollama.side_effect = ConnectionError("Ollama unavailable")
 
-            with pytest.raises(RuntimeError, match="All LLM providers failed"):
+            with pytest.raises(RuntimeError, match="Todos os providers LLM falharam na extração"):
                 await service.extract_edital_data(md_content="Test content")
 
             mock_ollama.assert_called_once()
@@ -124,5 +124,5 @@ async def test_ai_service_all_providers_exhausted():
         mock_ollama.side_effect = ConnectionError("Ollama down")
         mock_gemini.side_effect = ConnectionError("Gemini down")
 
-        with pytest.raises(RuntimeError, match="All LLM providers failed"):
+        with pytest.raises(RuntimeError, match="Todos os providers LLM falharam na extração"):
             await service.extract_edital_data(md_content="Test content")
