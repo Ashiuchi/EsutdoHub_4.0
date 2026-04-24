@@ -10,12 +10,20 @@ class Settings(BaseSettings):
     vault_token: Optional[str] = None
     
     gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
+    nvidia_api_key: Optional[str] = None
+
     database_url: str = "sqlite:///./dev.db"
     debug: bool = False
     use_local_llm: bool = True
     ollama_url: str = "http://host.docker.internal:11434"
     ollama_timeout: int = 600
     gemini_timeout: int = 15
+    groq_timeout: int = 30
+    openrouter_timeout: int = 45
+    nvidia_timeout: int = 60
+
     llm_strategy: str = "local_first"
     cloud_fallback: bool = True
     allowed_origins: List[str] = ["http://localhost:3000"]
@@ -36,6 +44,12 @@ class Settings(BaseSettings):
                     # Override with Vault secrets if they exist
                     if "GEMINI_API_KEY" in vault_secrets:
                         self.gemini_api_key = vault_secrets["GEMINI_API_KEY"]
+                    if "GROQ_API_KEY" in vault_secrets:
+                        self.groq_api_key = vault_secrets["GROQ_API_KEY"]
+                    if "OPENROUTER_API_KEY" in vault_secrets:
+                        self.openrouter_api_key = vault_secrets["OPENROUTER_API_KEY"]
+                    if "NVIDIA_API_KEY" in vault_secrets:
+                        self.nvidia_api_key = vault_secrets["NVIDIA_API_KEY"]
                     if "DATABASE_URL" in vault_secrets:
                         self.database_url = vault_secrets["DATABASE_URL"]
                     

@@ -92,6 +92,11 @@ class SubtractiveAgent:
         Returns:
             (markdown_enxuto, all_fragments)
         """
+        before_noise = len(md)
+        md = self._suppress_noise(md)
+        noise_removed = before_noise - len(md)
+        logger.info(f"suppress_noise: {before_noise} → {len(md)} chars (−{noise_removed} removed)")
+
         stripped, table_fragments = self.strip_tables(md)
         stripped, pattern_fragments = self.strip_patterns(stripped)
         all_fragments = {**table_fragments, **pattern_fragments}
@@ -99,6 +104,8 @@ class SubtractiveAgent:
         # Enriquecer com links e e-mails
         metadata_extras = self._extract_metadata(md)
         all_fragments.update(metadata_extras)
+
+        stripped = re.sub(r'\n{3,}', '\n\n', stripped).strip()
 
         reduction = len(md) - len(stripped)
         logger.info(
@@ -128,35 +135,63 @@ class SubtractiveAgent:
         
         Usa frequência de linhas em 'páginas' (separadas por --- ou \n\n).
         """
-        # Identificar separador de página (preferir --- se existir)
-        page_sep = "\n---\n" if "\n---\n" in md_content else "\n\n"
-        pages = [p.strip() for p in md_content.split(page_sep) if p.strip()]
-        n_pages = len(pages)
-        
+        # Detectar separador de página antes de remover qualquer linha.
+        if re.search(r'\n-{3,}\n', md_content):
+            page_sep = re.compile(r'\n-{3,}\n')
+        else:
+            page_sep = re.compile(r'\n{2,}')
+
+        raw_pages = [p.strip() for p in page_sep.split(md_content) if p.strip()]
+        n_pages = len(raw_pages)
+
+        def _clean_page(page: str) -> str:
+            """Remove separadores puros e números de página isolados dentro de uma página."""
+            page = re.sub(r'(?m)^[ \t]*[-_*]{3,}[ \t]*$', '', page)
+            page = re.sub(r'(?m)^[ \t]*-?\s*\d+\s*-?[ \t]*$', '', page)
+            return page
+
+        pages = [_clean_page(p) for p in raw_pages]
+
         if n_pages < 3:
-            return md_content
+            return "\n\n".join(pages)
 
-        # Contar ocorrências de cada linha por página (para evitar contar 10x na mesma pág)
-        line_counts = Counter()
+        def _normalize(line: str) -> str:
+            """Substitui dígitos no final da linha por '#' para agrupar variantes paginadas."""
+            return re.sub(r'\d+$', '#', line.strip())
+
+        # Contar frequência de linhas normalizadas por página (uma contagem por página)
+        norm_counts: Counter = Counter()
         for page in pages:
-            unique_lines = set(l.strip() for l in page.splitlines() if len(l.strip()) >= 5)
-            for line in unique_lines:
-                line_counts[line] += 1
+            seen_norms: set = set()
+            for raw in page.splitlines():
+                stripped = raw.strip()
+                if len(stripped) < 5:
+                    continue
+                norm = _normalize(stripped)
+                if norm not in seen_norms:
+                    norm_counts[norm] += 1
+                    seen_norms.add(norm)
 
-        # Identificar ruído: aparece em >= 30% das páginas E >= 3 vezes
+        # Identificar ruído: versão normalizada aparece em >= 30% das páginas E >= 3 vezes
         threshold = max(3, math.ceil(n_pages * 0.30))
-        noisy_lines = {line for line, count in line_counts.items() if count >= threshold}
+        noisy_norms = {norm for norm, count in norm_counts.items() if count >= threshold}
 
-        if noisy_lines:
-            logger.info(f"suppress_noise: identificadas {len(noisy_lines)} linhas de ruído.")
+        if noisy_norms:
+            logger.info(f"suppress_noise: identificadas {len(noisy_norms)} linhas de ruído (normalizadas).")
 
-        # Reconstruir o texto removendo as linhas ruidosas
+        # Reconstruir o texto removendo linhas cuja forma normalizada é ruído
+        # Páginas que ficaram vazias após limpeza são descartadas
         clean_pages = []
         for page in pages:
-            clean_lines = [l for l in page.splitlines() if l.strip() not in noisy_lines]
-            clean_pages.append("\n".join(clean_lines))
+            clean_lines = [
+                l for l in page.splitlines()
+                if _normalize(l) not in noisy_norms
+            ]
+            joined = "\n".join(clean_lines)
+            if joined.strip():
+                clean_pages.append(joined)
 
-        return page_sep.join(clean_pages)
+        return "\n\n".join(clean_pages)
 
     def _format_table_md(self, raw_table_md: str) -> str:
         """Reformata uma tabela markdown bruta usando pandas para alinhamento e limpeza.
@@ -221,9 +256,8 @@ class SubtractiveAgent:
         storage_path.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(exist_ok=True)
 
-        # Suprimir ruído e salvar texto limpo
-        clean_md = self._suppress_noise(result.stripped_md)
-        (storage_path / "main.md").write_text(clean_md, encoding="utf-8")
+        # stripped_md já vem limpo de process() — salvar diretamente
+        (storage_path / "main.md").write_text(result.stripped_md, encoding="utf-8")
 
         # Salvar tabelas
         table_keys = sorted(result.tables.keys())

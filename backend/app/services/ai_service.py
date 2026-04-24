@@ -9,6 +9,9 @@ from app.db.database import SessionLocal
 from app.providers.base_provider import BaseLLMProvider
 from app.providers.gemini_provider import GeminiProvider
 from app.providers.ollama_provider import OllamaProvider
+from app.providers.groq_provider import GroqProvider
+from app.providers.openrouter_provider import OpenRouterProvider
+from app.providers.nvidia_provider import NVIDIAProvider
 from app.schemas.edital_schema import Cargo, EditalGeral, EditalResponse, Materia, StatusEdital
 from app.services.chunker_service import MarkdownChunker
 
@@ -25,6 +28,10 @@ class AIService:
     def __init__(self) -> None:
         self.ollama_provider = OllamaProvider()
         self.gemini_provider = GeminiProvider()
+        self.groq_provider = GroqProvider()
+        self.openrouter_provider = OpenRouterProvider()
+        self.nvidia_provider = NVIDIAProvider()
+        
         self.strategy = settings.llm_strategy
         self.cloud_fallback = settings.cloud_fallback
         logger.info(f"AIService initialized with strategy={self.strategy}, cloud_fallback={self.cloud_fallback}")
@@ -34,22 +41,39 @@ class AIService:
     # ------------------------------------------------------------------ #
 
     def _get_provider_chain(self) -> List[BaseLLMProvider]:
-        """Constrói lista ordenada de providers conforme a estratégia configurada.
+        """Constrói lista ordenada de providers conforme a estratégia configurada e chaves disponíveis.
 
-        Returns:
-            Lista de providers na ordem de tentativa.
+        Ordem: Ollama -> Groq -> Gemini -> NVIDIA -> OpenRouter
         """
         if self.strategy == "local_only":
             return [self.ollama_provider]
-        if self.strategy == "cloud_only":
-            return [self.gemini_provider]
+        
+        chain: List[BaseLLMProvider] = []
 
-        chain: List[BaseLLMProvider] = [self.ollama_provider]
-        if self.cloud_fallback:
+        # 1. Ollama (Sempre tenta se local_first)
+        if self.strategy == "local_first" or self.strategy == "hybrid":
+            chain.append(self.ollama_provider)
+
+        # 2. Groq (Velocidade)
+        if settings.groq_api_key:
+            chain.append(self.groq_provider)
+
+        # 3. Gemini (Contexto/Cloud padrão)
+        if settings.gemini_api_key:
             chain.append(self.gemini_provider)
 
-        if self.strategy != "local_first":
-            logger.warning(f"Unknown strategy '{self.strategy}', defaulting to local_first")
+        # 4. NVIDIA (Qualidade/Pesado)
+        if settings.nvidia_api_key:
+            chain.append(self.nvidia_provider)
+
+        # 5. OpenRouter (Fallback final)
+        if settings.openrouter_api_key:
+            chain.append(self.openrouter_provider)
+
+        if not chain:
+            logger.error("Nenhum provider LLM configurado corretamente (chaves ausentes).")
+            # Adiciona Ollama como último recurso mesmo sem configuração explícita
+            chain.append(self.ollama_provider)
 
         return chain
 

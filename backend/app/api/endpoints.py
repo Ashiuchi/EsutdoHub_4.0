@@ -31,18 +31,48 @@ _SSE_KEEPALIVE_SECONDS = 15
 def _compute_hash(file_bytes: bytes) -> str:
     return hashlib.sha256(file_bytes).hexdigest()
 
+def _broadcast_log(content_hash: str, message: str) -> None:
+    """Envia um evento de log ao cockpit SSE e ao logger local."""
+    logger.info(message)
+    log_streamer.broadcast({"type": "log", "content_hash": content_hash, "message": message})
+
+
+def _broadcast_error(content_hash: str, stage: str, error: Exception) -> None:
+    """Envia um evento de erro ao cockpit SSE e ao logger local."""
+    message = f"[{stage}] {error}"
+    logger.error("Erro no processamento (%s): %s", stage, error, exc_info=True)
+    log_streamer.broadcast({
+        "type": "error",
+        "stage": stage,
+        "content_hash": content_hash,
+        "message": message,
+    })
+
+
 async def _process_edital_task(content_hash: str, temp_path: str):
     """Tarefa de segundo plano para processar o edital pesado."""
     try:
-        logger.info(f"Iniciando processamento em background para: {content_hash}")
+        _broadcast_log(content_hash, f"Iniciando processamento para {content_hash}")
+
         # 1. Converter para Markdown
-        md_content = PDFService.to_markdown(temp_path)
+        _broadcast_log(content_hash, "Extraindo texto do PDF…")
+        try:
+            md_content = PDFService.to_markdown(temp_path)
+        except Exception as e:
+            _broadcast_error(content_hash, "pdf_extraction", e)
+            return
+
         if not md_content.strip():
-            raise ValueError("Conteúdo do PDF está vazio ou ilegível.")
+            exc = ValueError("Conteúdo do PDF está vazio ou ilegível.")
+            _broadcast_error(content_hash, "pdf_extraction", exc)
+            return
+
+        _broadcast_log(content_hash, f"PDF extraído: {len(md_content)} caracteres")
 
         # 2. Processamento Subtrativo
+        _broadcast_log(content_hash, "Iniciando processamento subtrativo…")
         enxuto_md, fragments = subtractive_agent.process(md_content)
-        
+
         # 3. Persistência em Disco
         result_data = StorageResult(
             content_hash=content_hash,
@@ -51,16 +81,19 @@ async def _process_edital_task(content_hash: str, temp_path: str):
             patterns={k: v for k, v in fragments.items() if not k.startswith("FRAGMENT_TABLE_")}
         )
         storage_path = subtractive_agent.persist(result_data)
-        logger.info(f"Edital persistido em: {storage_path}")
+        _broadcast_log(content_hash, f"Edital persistido em: {storage_path}")
 
         # 4. Caçador de Títulos (CargoTitleAgent)
+        _broadcast_log(content_hash, "Identificando títulos de cargo…")
         cargos_identificados = await cargo_agent.hunt_titles(content_hash)
+        _broadcast_log(content_hash, f"{len(cargos_identificados)} cargo(s) identificado(s)")
 
         # 5. Vitaminizador (CargoVitaminizerAgent)
+        _broadcast_log(content_hash, "Vitaminizando cargos…")
         vitamin_data = await vitaminizer_agent.vitaminize(content_hash, cargos_identificados)
 
         # 6. Minerador de Conteúdo (SubjectsScoutAgent)
-        # Extrai matérias e tópicos para os cargos vitaminados
+        _broadcast_log(content_hash, "Minerando matérias e tópicos…")
         cargos_com_materias = await subjects_scout_agent.scout(content_hash, vitamin_data.cargos_vitaminados)
 
         # 7. Notificar via SSE (broadcast de dados final)
@@ -69,23 +102,18 @@ async def _process_edital_task(content_hash: str, temp_path: str):
             "status": StatusEdital.PROCESSADO,
             "content_hash": content_hash,
             "edital": vitamin_data.edital_info.model_dump() if hasattr(vitamin_data.edital_info, "model_dump") else vitamin_data.edital_info,
-            "cargos": [c.model_dump() if hasattr(c, "model_dump") else c for c in cargos_com_materias]
+            "cargos": [c.model_dump() if hasattr(c, "model_dump") else c for c in cargos_com_materias],
         })
-        logger.info(f"Processamento completo (incluindo conteúdos) para {content_hash}")
+        _broadcast_log(content_hash, f"Processamento completo para {content_hash}")
 
     except Exception as e:
-        logger.error(f"Erro no processamento em background: {str(e)}", exc_info=True)
-        log_streamer.broadcast({
-            "type": "error",
-            "content_hash": content_hash,
-            "message": f"Erro ao processar edital: {str(e)}"
-        })
+        _broadcast_error(content_hash, "processing", e)
     finally:
         if os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
-            except Exception as re:
-                logger.warning(f"Não foi possível remover arquivo temporário {temp_path}: {re}")
+            except Exception as cleanup_err:
+                logger.warning("Não foi possível remover arquivo temporário %s: %s", temp_path, cleanup_err)
 
 @router.post("/upload", response_model=IngestionResponse)
 async def upload_edital(background_tasks: BackgroundTasks, file: UploadFile = File(...)):

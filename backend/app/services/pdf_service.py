@@ -1,26 +1,17 @@
-import pymupdf4llm
 import logging
 
+from app.services.geometric_engine import GeometricEngine
+
 logger = logging.getLogger(__name__)
+
 
 class PDFService:
     @staticmethod
     def to_markdown(file_path: str) -> str:
-        """Converte um arquivo PDF para Markdown preservando tabelas e estrutura.
-
-        Args:
-            file_path: Caminho absoluto ou relativo para o arquivo PDF.
-
-        Returns:
-            Conteúdo do PDF convertido para Markdown.
-
-        Raises:
-            RuntimeError: Se o pymupdf4llm falhar ao processar o arquivo.
-        """
+        logger.info("Starting PDF conversion: file=%s", file_path)
         try:
-            logger.info(f"PDFService: Convertendo {file_path}")
-            md_text: str = pymupdf4llm.to_markdown(file_path)
+            md_text = GeometricEngine().document_to_markdown(file_path)
+            logger.info("GeometricEngine extraction succeeded: %d chars", len(md_text))
             return md_text
         except Exception as e:
-            logger.error(f"PDFService: Falha na conversão de '{file_path}' - {e}")
-            raise RuntimeError(f"Falha ao extrair texto do PDF '{file_path}': {e}") from e
+            raise RuntimeError(f"Falha ao extrair texto do PDF: {file_path}") from e
