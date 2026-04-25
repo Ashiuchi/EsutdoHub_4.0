@@ -48,6 +48,44 @@ pipeline {
                     || echo "Vault health check failed but proceeding..."'''
             }
         }
+
+        stage('Mass Ingestion & Extraction') {
+            steps {
+                echo 'Iniciando ingestão em massa dos editais de sample_editais/...'
+                sh '''
+                    set +e
+                    success=0
+                    failed=0
+                    total=0
+
+                    find sample_editais -name "*.pdf" > /tmp/pdf_list.txt
+
+                    while IFS= read -r path; do
+                        total=$((total + 1))
+                        echo "[UPLOAD] $path"
+                        http_code=$(curl -s -o /dev/null -w "%{http_code}" \
+                            --max-time 30 \
+                            -F "file=@$path" \
+                            http://backend:8000/api/v1/upload)
+                        if [ -n "$http_code" ] && \
+                           [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                            echo "[OK] HTTP $http_code"
+                            success=$((success + 1))
+                        else
+                            echo "[ERRO] HTTP ${http_code:-connection_failed}"
+                            failed=$((failed + 1))
+                        fi
+                    done < /tmp/pdf_list.txt
+
+                    rm -f /tmp/pdf_list.txt
+                    echo ""
+                    echo "=== RESUMO DA INGESTÃO ==="
+                    echo "Total:   $total editais"
+                    echo "Sucesso: $success"
+                    echo "Falhas:  $failed"
+                '''
+            }
+        }
     }
 
     post {
