@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 from typing import AsyncGenerator
 
+import aiofiles
 from fastapi import APIRouter, Request, UploadFile, File, HTTPException, BackgroundTasks
 from sse_starlette.sse import EventSourceResponse
 
@@ -126,8 +127,8 @@ async def upload_edital(background_tasks: BackgroundTasks, file: UploadFile = Fi
     
     # Salvar temporariamente para o background task ler
     temp_path = f"temp_{content_hash}_{uuid.uuid4().hex[:8]}.pdf"
-    with open(temp_path, "wb") as buffer:
-        buffer.write(file_bytes)
+    async with aiofiles.open(temp_path, "wb") as buffer:
+        await buffer.write(file_bytes)
 
     # Disparar tarefa em background
     background_tasks.add_task(_process_edital_task, content_hash, temp_path)
