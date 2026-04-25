@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./dev.db"
     debug: bool = False
     use_local_llm: bool = True
-    ollama_url: str = "http://host.docker.internal:11434"
+    ollama_url: str = "http://ollama:11434"
     ollama_timeout: int = 600
     gemini_timeout: int = 15
     groq_timeout: int = 30
