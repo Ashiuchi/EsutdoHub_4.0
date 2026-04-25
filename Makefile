@@ -1,4 +1,22 @@
-.PHONY: sonar-up sonar-down sonar-init sonar-scan test-backend
+.PHONY: up down logs ps restart sonar-up sonar-down sonar-init sonar-scan test-backend vault-up vault-down vault-clean vault-init jenkins-up jenkins-down jenkins-logs jenkins-password
+
+COMPOSE_ALL := docker compose -f docker-compose.all.yml
+
+up:
+	$(COMPOSE_ALL) up -d
+
+down:
+	$(COMPOSE_ALL) down
+
+logs:
+	$(COMPOSE_ALL) logs -f
+
+ps:
+	$(COMPOSE_ALL) ps
+
+restart:
+	$(COMPOSE_ALL) restart
+
 
 sonar-up:
 	docker compose -f docker-compose.sonar.yml up -d
