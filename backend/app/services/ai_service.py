@@ -39,8 +39,8 @@ class AIService:
         self.vitaminizer_agent = CargoVitaminizerAgent()
         self.subjects_scout_agent = SubjectsScoutAgent()
 
-        chain_names = [p.__class__.__name__ for p in self._get_provider_chain()]
-        logger.info("AIService initialized — chain: %s", " → ".join(chain_names))
+        _initial_chain = self._get_provider_chain()
+        logger.info("AIService initialized — chain: %s", " → ".join(p.__class__.__name__ for p in _initial_chain))
 
     # ------------------------------------------------------------------ #
     #  Provider chain                                                       #
@@ -74,6 +74,8 @@ class AIService:
         Injeta a chain de providers em cada agente.
         Retorna dict com 'edital' (EditalGeral) e 'cargos' (List[Cargo]).
         """
+        # md_content is not forwarded to agents — they read from storage/processed/{content_hash}/
+        # The parameter is retained for API contract consistency with the caller in endpoints.py.
         chain = self._get_provider_chain()
         logger.info(
             "process_edital [%s]: chain=[%s]",

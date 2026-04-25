@@ -251,13 +251,14 @@ async def test_extract_chunked_merges_cargos_across_chunks():
 # ── _extract_from_chunk — unexpected exception path ──────────────────────────
 
 @pytest.mark.asyncio
-async def test_extract_from_chunk_unexpected_exception_continues():
+async def test_extract_from_chunk_unexpected_exception_continues(monkeypatch):
+    monkeypatch.setattr("app.services.ai_service.settings.groq_api_key", None)
+    monkeypatch.setattr("app.services.ai_service.settings.nvidia_api_key", None)
+    monkeypatch.setattr("app.services.ai_service.settings.openrouter_api_key", None)
+    monkeypatch.setattr("app.services.ai_service.settings.gemini_api_key", None)
     service = AIService()
 
     with patch.object(service.ollama_provider, 'generate_json',
-                      new_callable=AsyncMock,
-                      side_effect=RuntimeError("unexpected")), \
-         patch.object(service.gemini_provider, 'generate_json',
                       new_callable=AsyncMock,
                       side_effect=RuntimeError("unexpected")):
         result = await service._extract_from_chunk("test chunk")

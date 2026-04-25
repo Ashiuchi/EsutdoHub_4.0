@@ -35,13 +35,13 @@ def test_ai_service_provider_chain():
         service = AIService()
         chain = service._get_provider_chain()
         
-        # Order: Ollama -> Groq -> Gemini -> NVIDIA -> OpenRouter
+        # Order: Ollama -> Groq -> NVIDIA -> OpenRouter -> Gemini
         assert len(chain) == 5
         assert chain[0].__class__.__name__ == "OllamaProvider"
         assert chain[1].__class__.__name__ == "GroqProvider"
-        assert chain[2].__class__.__name__ == "GeminiProvider"
-        assert chain[3].__class__.__name__ == "NVIDIAProvider"
-        assert chain[4].__class__.__name__ == "OpenRouterProvider"
+        assert chain[2].__class__.__name__ == "NVIDIAProvider"
+        assert chain[3].__class__.__name__ == "OpenRouterProvider"
+        assert chain[4].__class__.__name__ == "GeminiProvider"
 
 def test_ai_service_skips_missing_keys():
     # Only Groq and OpenRouter
