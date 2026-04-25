@@ -1,0 +1,5 @@
+include:
+  - docker-compose.yml
+  - docker-compose.jenkins.yml
+  - docker-compose.sonar.yml
+  - docker-compose.vault.yml
