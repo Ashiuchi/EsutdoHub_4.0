@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 
+from app.providers.base_provider import BaseLLMProvider
 from app.providers.ollama_provider import OllamaProvider
 from app.providers.gemini_provider import GeminiProvider
 from app.core.config import settings
@@ -20,11 +21,9 @@ class CargoSubjects(BaseModel):
 
 class SubjectsScoutAgent:
     def __init__(self):
-        self.ollama_provider = OllamaProvider(timeout=600)
-        self.gemini_provider = GeminiProvider()
         self.semaphore = asyncio.Semaphore(2)  # Extração de tópicos é densa, limitamos mais
 
-    async def scout(self, content_hash: str, cargos: List[Cargo]) -> List[Cargo]:
+    async def scout(self, content_hash: str, cargos: List[Cargo], chain: List[BaseLLMProvider]) -> List[Cargo]:
         """Localiza e extrai o conteúdo programático para cada cargo."""
         storage_path = Path("backend/storage/processed") / content_hash
         if not storage_path.exists():
@@ -51,7 +50,7 @@ class SubjectsScoutAgent:
         
         tasks = []
         for cargo in cargos:
-            tasks.append(self._extract_for_cargo(cargo, content_section))
+            tasks.append(self._extract_for_cargo(cargo, content_section, chain))
         
         results = await asyncio.gather(*tasks)
         
@@ -85,7 +84,7 @@ class SubjectsScoutAgent:
                 return text[start:start+60000]
         return ""
 
-    async def _extract_for_cargo(self, cargo: Cargo, section: str) -> List[Materia]:
+    async def _extract_for_cargo(self, cargo: Cargo, section: str, chain: List[BaseLLMProvider]) -> List[Materia]:
         """Usa LLM para extrair matérias e tópicos para um cargo específico."""
         async with self.semaphore:
             prompt = f"""
@@ -102,10 +101,13 @@ class SubjectsScoutAgent:
             {section}
             """
             
-            provider = self.ollama_provider if settings.llm_strategy != "cloud_only" else self.gemini_provider
-            try:
-                result = await provider.generate_json(prompt=prompt, schema=CargoSubjects)
-                return result.materias
-            except Exception as e:
-                logger.error(f"Erro ao extrair matérias para {cargo.titulo}: {e}")
-                return []
+            for provider in chain:
+                try:
+                    result = await provider.generate_json(prompt=prompt, schema=CargoSubjects)
+                    return result.materias
+                except Exception as e:
+                    logger.warning(f"⚠️ {provider.__class__.__name__} falhou em _extract_for_cargo: {e}")
+                    continue
+
+            logger.error(f"Todos os providers falharam para extrair matérias do cargo {cargo.titulo}.")
+            return []

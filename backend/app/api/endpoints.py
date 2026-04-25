@@ -16,15 +16,11 @@ from app.core.logging_streamer import log_streamer
 from app.schemas.edital_schema import IngestionResponse, StatusEdital
 from app.services.pdf_service import PDFService
 from app.services.subtractive_service import SubtractiveAgent, StorageResult
-from app.services.cargo_specialist import CargoTitleAgent
-from app.services.cargo_vitaminizer import CargoVitaminizerAgent
-from app.services.subjects_scout import SubjectsScoutAgent
+from app.services.ai_service import AIService
 
 router = APIRouter()
 subtractive_agent = SubtractiveAgent()
-cargo_agent = CargoTitleAgent()
-vitaminizer_agent = CargoVitaminizerAgent()
-subjects_scout_agent = SubjectsScoutAgent()
+ai_service = AIService()
 logger = logging.getLogger(__name__)
 
 _SSE_KEEPALIVE_SECONDS = 15
@@ -84,26 +80,17 @@ async def _process_edital_task(content_hash: str, temp_path: str):
         storage_path = subtractive_agent.persist(result_data)
         _broadcast_log(content_hash, f"Edital persistido em: {storage_path}")
 
-        # 4. Caçador de Títulos (CargoTitleAgent)
-        _broadcast_log(content_hash, "Identificando títulos de cargo…")
-        cargos_identificados = await cargo_agent.hunt_titles(content_hash)
-        _broadcast_log(content_hash, f"{len(cargos_identificados)} cargo(s) identificado(s)")
+        # 4. Orquestração de IA (CargoTitle → Vitaminizer → SubjectsScout)
+        _broadcast_log(content_hash, "Iniciando inteligência artificial (Pipeline Agnostico)…")
+        result = await ai_service.process_edital(content_hash, enxuto_md)
 
-        # 5. Vitaminizador (CargoVitaminizerAgent)
-        _broadcast_log(content_hash, "Vitaminizando cargos…")
-        vitamin_data = await vitaminizer_agent.vitaminize(content_hash, cargos_identificados)
-
-        # 6. Minerador de Conteúdo (SubjectsScoutAgent)
-        _broadcast_log(content_hash, "Minerando matérias e tópicos…")
-        cargos_com_materias = await subjects_scout_agent.scout(content_hash, vitamin_data.cargos_vitaminados)
-
-        # 7. Notificar via SSE (broadcast de dados final)
+        # 5. Notificar via SSE (broadcast de dados final)
         log_streamer.broadcast({
             "type": "data",
             "status": StatusEdital.PROCESSADO,
             "content_hash": content_hash,
-            "edital": vitamin_data.edital_info.model_dump() if hasattr(vitamin_data.edital_info, "model_dump") else vitamin_data.edital_info,
-            "cargos": [c.model_dump() if hasattr(c, "model_dump") else c for c in cargos_com_materias],
+            "edital": result["edital"].model_dump() if hasattr(result["edital"], "model_dump") else result["edital"],
+            "cargos": [c.model_dump() if hasattr(c, "model_dump") else c for c in result["cargos"]],
         })
         _broadcast_log(content_hash, f"Processamento completo para {content_hash}")
 

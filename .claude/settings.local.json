@@ -125,7 +125,30 @@
       "Bash(venv/bin/pytest backend/tests/services/test_cargo_specialist.py::test_sprint_scan_extracts_cargos_from_table --tb=long -q)",
       "Bash(venv/bin/pytest backend/tests --cov=backend/app --cov-report=term-missing -q --tb=line)",
       "Bash(venv/bin/pytest backend/tests/services/test_ai_service_coverage.py::test_extract_chunked_merges_cargos_across_chunks backend/tests/services/test_chunker_service.py::test_split_no_overlap -v)",
-      "Bash(venv/bin/pytest backend/tests --cov=backend/app --cov-report=xml:backend/test-reports/coverage.xml --cov-report=term-missing -q)"
+      "Bash(venv/bin/pytest backend/tests --cov=backend/app --cov-report=xml:backend/test-reports/coverage.xml --cov-report=term-missing -q)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(venv/bin/python3 *)",
+      "Bash(grep -E \"\\(enxuto|final_clean\\)\" find /mnt/d/DevOps/EstudoHub_4.0 -maxdepth 1 -name \"*.md\" -o -name \"*.json\" -o -name \"*.log\")",
+      "Bash(grep -v \".git\" find /mnt/d/DevOps/EstudoHub_4.0 -maxdepth 1 -name \"trt_*\")",
+      "Bash(wait)",
+      "Bash(date -d @$\\(\\(1776908908782/1000\\)\\))",
+      "Bash(echo \"Config copiado: $?\")",
+      "Bash(date +%Y-04-25 02:1)",
+      "Bash(grep \"bc675bf\\\\|$\\(date +%Y-04-25 02:1\\)\")",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest --version)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_ai_service_orchestration.py -v)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/python3 *)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/python -m pytest tests/services/test_ai_service_orchestration.py -v)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/python -m pytest tests/ -v --tb=short)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/python -m pytest tests/ -v --tb=short --ignore=tests/api/test_task6_upload_flow.py)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/python -m pytest tests/providers/test_new_providers.py::test_ai_service_provider_chain tests/services/test_ai_service_coverage.py::test_extract_from_chunk_unexpected_exception_continues -v --tb=long)",
+      "Read(//usr/**)",
+      "Read(//home/**)",
+      "Read(//root/**)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_ai_service_orchestration.py tests/services/test_ai_service_coverage.py tests/providers/test_new_providers.py -v)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_cargo_specialist.py::test_deep_scan_uses_first_working_provider_in_chain tests/services/test_cargo_specialist.py::test_deep_scan_returns_empty_when_all_providers_fail -v)",
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_cargo_specialist.py -v)"
     ]
   }
 }

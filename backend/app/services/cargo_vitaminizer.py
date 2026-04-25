@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 
+from app.providers.base_provider import BaseLLMProvider
 from app.providers.ollama_provider import OllamaProvider
 from app.providers.gemini_provider import GeminiProvider
 from app.core.config import settings
@@ -31,12 +32,10 @@ class VitaminData(BaseModel):
 
 class CargoVitaminizerAgent:
     def __init__(self):
-        self.ollama_provider = OllamaProvider(timeout=600)
-        self.gemini_provider = GeminiProvider()
         # Semáforo para limitar concorrência no LLM local e não travar a GPU
         self.semaphore = asyncio.Semaphore(3)
 
-    async def _discover_structure(self, main_md: str, tables: List[str]) -> MappingDiscovery:
+    async def _discover_structure(self, main_md: str, tables: List[str], chain: List[BaseLLMProvider]) -> MappingDiscovery:
         """Usa IA para descobrir o significado de legendas, siglas e códigos regionais."""
         async with self.semaphore:
             log_streamer.broadcast({"type": "log", "message": "🔍 Analisando legendas e estruturas dinâmicas...", "level": "INFO"})
@@ -63,17 +62,20 @@ class CargoVitaminizerAgent:
             CAMPOS VÁLIDOS: vagas_ac, vagas_pcd, vagas_negros, vagas_indigenas, vagas_trans, vagas_cr, vagas_total.
             """
             
-            provider = self.ollama_provider if settings.llm_strategy != "cloud_only" else self.gemini_provider
-            try:
-                mapping = await provider.generate_json(prompt=prompt, schema=MappingDiscovery)
-                for sigla, campo in mapping.acronyms.items():
-                    log_streamer.broadcast({"type": "log", "message": f"📌 Legenda descoberta: {sigla} -> {campo}", "level": "INFO"})
-                for cod, cargo in mapping.regions.items():
-                    log_streamer.broadcast({"type": "log", "message": f"📌 Mapeamento descoberto: {cod} -> {cargo}", "level": "INFO"})
-                return mapping
-            except Exception as e:
-                logger.error(f"Erro na descoberta: {e}")
-                return MappingDiscovery(acronyms={}, regions={}, headers=[])
+            for provider in chain:
+                try:
+                    mapping = await provider.generate_json(prompt=prompt, schema=MappingDiscovery)
+                    for sigla, campo in mapping.acronyms.items():
+                        log_streamer.broadcast({"type": "log", "message": f"📌 Legenda descoberta: {sigla} -> {campo}", "level": "INFO"})
+                    for cod, cargo in mapping.regions.items():
+                        log_streamer.broadcast({"type": "log", "message": f"📌 Mapeamento descoberto: {cod} -> {cargo}", "level": "INFO"})
+                    return mapping
+                except Exception as e:
+                    logger.warning(f"⚠️ {provider.__class__.__name__} falhou em _discover_structure: {e}")
+                    continue
+
+            logger.error("Todos os providers falharam em _discover_structure.")
+            return MappingDiscovery(acronyms={}, regions={}, headers=[])
 
     def _process_single_table(self, table_md: str, discovery: MappingDiscovery, identified_cargos: List[CargoIdentificado], cargo_totals: Dict[str, Dict[str, int]]):
         """Processa uma única tabela e acumula no dicionário global de totais."""
@@ -118,21 +120,25 @@ class CargoVitaminizerAgent:
             
         return cargo_totals
 
-    async def _extract_global_metadata(self, main_md: str) -> GlobalMetadata:
+    async def _extract_global_metadata(self, main_md: str, chain: List[BaseLLMProvider]) -> GlobalMetadata:
         async with self.semaphore:
             prompt = f"Extraia metadados globais do edital em JSON (EditalGeral + salary_patterns como lista de strings).\nTEXTO: {main_md[:5000]}"
-            provider = self.ollama_provider if settings.llm_strategy != "cloud_only" else self.gemini_provider
-            try:
-                return await provider.generate_json(prompt=prompt, schema=GlobalMetadata)
-            except Exception as e:
-                logger.error(f"Erro ao extrair metadados globais: {e}")
-                # Graceful degradation: retorna objeto vazio mas válido
-                return GlobalMetadata(
-                    edital_info=EditalGeral(orgao="Pendente", banca="Pendente"), 
-                    salary_patterns=[]
-                )
+            
+            for provider in chain:
+                try:
+                    return await provider.generate_json(prompt=prompt, schema=GlobalMetadata)
+                except Exception as e:
+                    logger.warning(f"⚠️ {provider.__class__.__name__} falhou em _extract_global_metadata: {e}")
+                    continue
 
-    async def vitaminize(self, content_hash: str, identified_cargos: List[CargoIdentificado]) -> VitaminData:
+            logger.error("Todos os providers falharam em _extract_global_metadata.")
+            # Graceful degradation: retorna objeto vazio mas válido
+            return GlobalMetadata(
+                edital_info=EditalGeral(orgao="Pendente", banca="Pendente"), 
+                salary_patterns=[]
+            )
+
+    async def vitaminize(self, content_hash: str, identified_cargos: List[CargoIdentificado], chain: List[BaseLLMProvider]) -> VitaminData:
         storage_path = Path("backend/storage/processed") / content_hash
         if not storage_path.exists(): storage_path = Path("storage/processed") / content_hash
             
@@ -146,9 +152,9 @@ class CargoVitaminizerAgent:
         ruido = ["jurado", "redator", "espectro", "deficiência", "negros", "total", "nenhum", "cargo", "área"]
         identified_cargos = [c for c in identified_cargos if not any(r in c.titulo.lower() for r in ruido)]
 
-        discovery = await self._discover_structure(main_md, tables)
+        discovery = await self._discover_structure(main_md, tables, chain)
         vagas_agregadas = self._aggregate_vacancies(tables, discovery, identified_cargos)
-        metadata = await self._extract_global_metadata(main_md)
+        metadata = await self._extract_global_metadata(main_md, chain)
 
         cargos_finais = []
         for cargo_id in identified_cargos:
