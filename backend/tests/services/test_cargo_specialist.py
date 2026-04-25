@@ -80,70 +80,26 @@ def test_sprint_scan_handles_malformed_table_gracefully():
     assert isinstance(result, list)
 
 
-# ── _deep_scan ────────────────────────────────────────────────────────────────
-
-@pytest.mark.asyncio
-async def test_deep_scan_returns_cargos_from_provider():
-    agent = CargoTitleAgent()
-    from pydantic import BaseModel
-    from typing import List
-
-    mock_result = MagicMock()
-    mock_result.cargos = [CargoIdentificado(titulo="Analista", codigo_edital="01")]
-
-    with patch.object(agent.ollama_provider, 'generate_json',
-                      new_callable=AsyncMock, return_value=mock_result):
-        result = await agent._deep_scan("fragmento de edital")
-        assert len(result) == 1
-        assert result[0].titulo == "Analista"
-
-
-@pytest.mark.asyncio
-async def test_deep_scan_falls_back_to_gemini_on_ollama_failure():
-    agent = CargoTitleAgent()
-    mock_result = MagicMock()
-    mock_result.cargos = [CargoIdentificado(titulo="Técnico", codigo_edital="02")]
-
-    with patch.object(agent.ollama_provider, 'generate_json',
-                      new_callable=AsyncMock,
-                      side_effect=ConnectionError("Ollama offline")), \
-         patch.object(agent.gemini_provider, 'generate_json',
-                      new_callable=AsyncMock, return_value=mock_result):
-        result = await agent._deep_scan("fragmento")
-        assert len(result) == 1
-        assert result[0].titulo == "Técnico"
-
-
-@pytest.mark.asyncio
-async def test_deep_scan_returns_empty_when_all_providers_fail():
-    agent = CargoTitleAgent()
-    with patch.object(agent.ollama_provider, 'generate_json',
-                      new_callable=AsyncMock,
-                      side_effect=ConnectionError("offline")), \
-         patch.object(agent.gemini_provider, 'generate_json',
-                      new_callable=AsyncMock,
-                      side_effect=ConnectionError("offline")):
-        result = await agent._deep_scan("fragmento")
-        assert result == []
-
-
 # ── hunt_titles ───────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_hunt_titles_no_storage_returns_empty(tmp_path):
+    from app.providers.base_provider import BaseLLMProvider
     agent = CargoTitleAgent()
-    # Point storage to a directory that doesn't have the hash subdirectory
+    chain = [MagicMock(spec=BaseLLMProvider)]
     fake_storage = tmp_path / "storage" / "processed"
     fake_storage.mkdir(parents=True)
     with patch('app.services.cargo_specialist.Path',
                side_effect=lambda *a: fake_storage if "storage/processed" in str(a[0]) else Path(*a)):
-        result = await agent.hunt_titles("nonexistent-hash")
+        result = await agent.hunt_titles("nonexistent-hash", chain)
         assert isinstance(result, list)
 
 
 @pytest.mark.asyncio
 async def test_hunt_titles_with_main_md(tmp_path):
+    from app.providers.base_provider import BaseLLMProvider
     agent = CargoTitleAgent()
+    chain = [MagicMock(spec=BaseLLMProvider)]
     content_hash = "test-hash"
     storage_path = tmp_path / content_hash
     storage_path.mkdir()
@@ -168,5 +124,48 @@ async def test_hunt_titles_with_main_md(tmp_path):
             # Direct test with real path
             with patch('app.services.cargo_specialist.Path',
                        side_effect=lambda *a: tmp_path if "storage" in str(a) else Path(*a)):
-                result = await agent.hunt_titles(content_hash)
+                result = await agent.hunt_titles(content_hash, chain)
                 assert isinstance(result, list)
+
+
+# ── chain injection ───────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_deep_scan_uses_first_working_provider_in_chain():
+    from app.providers.base_provider import BaseLLMProvider
+    from app.schemas.edital_schema import CargoIdentificado
+    from pydantic import BaseModel
+
+    agent = CargoTitleAgent()
+
+    failing = MagicMock(spec=BaseLLMProvider)
+    failing.generate_json = AsyncMock(side_effect=ConnectionError("down"))
+
+    working = MagicMock(spec=BaseLLMProvider)
+
+    class CargoList(BaseModel):
+        cargos: list[CargoIdentificado]
+
+    working.generate_json = AsyncMock(return_value=CargoList(
+        cargos=[CargoIdentificado(titulo="Analista", codigo_edital="01")]
+    ))
+
+    chain = [failing, working]
+    result = await agent._deep_scan("fragmento de edital", chain)
+
+    assert len(result) == 1
+    assert result[0].titulo == "Analista"
+    failing.generate_json.assert_awaited_once()
+    working.generate_json.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_deep_scan_returns_empty_when_all_providers_fail():
+    from app.providers.base_provider import BaseLLMProvider
+
+    agent = CargoTitleAgent()
+    bad = MagicMock(spec=BaseLLMProvider)
+    bad.generate_json = AsyncMock(side_effect=Exception("fail"))
+
+    result = await agent._deep_scan("fragmento", [bad, bad])
+    assert result == []
