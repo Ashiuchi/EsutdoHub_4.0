@@ -10,6 +10,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+
   backend:
     build: ./backend
     volumes:
@@ -24,6 +31,7 @@ services:
     depends_on:
       - db
       - cache
+      - ollama
 
   frontend:
     build: ./frontend
@@ -42,3 +50,4 @@ services:
 
 volumes:
   postgres_data:
+  ollama_data:
