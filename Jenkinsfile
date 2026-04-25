@@ -58,7 +58,8 @@ pipeline {
                     failed=0
                     total=0
 
-                    find sample_editais -name "*.pdf" > /tmp/pdf_list.txt
+                    pdf_list=$(mktemp /tmp/pdf_list.XXXXXX)
+                    find "$PROJECT_DIR/sample_editais" -name "*.pdf" > "$pdf_list"
 
                     while IFS= read -r path; do
                         total=$((total + 1))
@@ -67,17 +68,20 @@ pipeline {
                             --max-time 30 \
                             -F "file=@$path" \
                             http://backend:8000/api/v1/upload)
-                        if [ -n "$http_code" ] && \
-                           [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                        if [ "$http_code" = "000" ]; then
+                            echo "[ERRO] Falha de conexão (backend inacessível)"
+                            failed=$((failed + 1))
+                        elif [ -n "$http_code" ] && \
+                             [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
                             echo "[OK] HTTP $http_code"
                             success=$((success + 1))
                         else
-                            echo "[ERRO] HTTP ${http_code:-connection_failed}"
+                            echo "[ERRO] HTTP ${http_code:-desconhecido}"
                             failed=$((failed + 1))
                         fi
-                    done < /tmp/pdf_list.txt
+                    done < "$pdf_list"
 
-                    rm -f /tmp/pdf_list.txt
+                    rm -f "$pdf_list"
                     echo ""
                     echo "=== RESUMO DA INGESTÃO ==="
                     echo "Total:   $total editais"
