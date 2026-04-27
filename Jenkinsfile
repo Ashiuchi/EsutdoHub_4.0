@@ -2,14 +2,14 @@ pipeline {
     agent {
         node {
             label 'built-in'
-            customWorkspace '/mnt/d/DevOps/EstudoHub_4.0'
+            customWorkspace '/mnt/c/Dev/EstudoHub_4.0'
         }
     }
 
 
     environment {
         VAULT_ADDR  = "http://host.docker.internal:8205"
-        PROJECT_DIR = "/mnt/d/DevOps/EstudoHub_4.0"
+        PROJECT_DIR = "/mnt/c/Dev/EstudoHub_4.0"
     }
 
     stages {

@@ -55,6 +55,33 @@ class BaseLLMProvider(ABC):
         }
 
         if isinstance(data, dict):
+            # Recursively unwrap if the LLM wrapped the response in keys named after schemas
+            def unwrap(d, target_schema):
+                if not isinstance(d, dict) or len(d) != 1:
+                    return d
+                
+                key = list(d.keys())[0]
+                # Check if key matches current schema or any field schema
+                if key.lower() == target_schema.__name__.lower():
+                    logger.info(f"Unwrapping LLM response from root key '{key}'")
+                    return unwrap(d[key], target_schema)
+                
+                return d
+
+            data = unwrap(data, schema)
+
+            # Also check for common field-level wrapping (like edital_info: { EditalGeral: { ... } })
+            for key, value in data.items():
+                if isinstance(value, dict) and len(value) == 1:
+                    # If the key is a field in the schema, try to unwrap its value
+                    field = schema.model_fields.get(key)
+                    if field and hasattr(field.annotation, "__name__"):
+                        field_schema_name = field.annotation.__name__
+                        inner_key = list(value.keys())[0]
+                        if inner_key.lower() == field_schema_name.lower():
+                            logger.info(f"Unwrapping field '{key}' from inner key '{inner_key}'")
+                            data[key] = value[inner_key]
+
             for target_key, possible_aliases in aliases.items():
                 if target_key not in data:
                     for alias in possible_aliases:

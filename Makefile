@@ -1,9 +1,12 @@
-.PHONY: up down logs ps restart sonar-up sonar-down sonar-init sonar-scan test-backend vault-up vault-down vault-clean vault-init jenkins-up jenkins-down jenkins-logs jenkins-password
+.PHONY: up down logs ps restart init sonar-up sonar-down sonar-init sonar-scan test-backend vault-up vault-down vault-clean vault-init jenkins-up jenkins-down jenkins-logs jenkins-password
 
 COMPOSE_ALL := docker compose -f docker-compose.all.yml
 
 up:
 	$(COMPOSE_ALL) up -d
+
+init:
+	bash scripts/init_infra.sh
 
 down:
 	$(COMPOSE_ALL) down

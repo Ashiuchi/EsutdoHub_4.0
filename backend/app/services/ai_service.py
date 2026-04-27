@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pathlib import Path
 from typing import List, Optional, Set
 
 from app.core.config import settings
@@ -11,9 +12,10 @@ from app.providers.gemini_provider import GeminiProvider
 from app.providers.ollama_provider import OllamaProvider
 from app.providers.groq_provider import GroqProvider
 from app.providers.openrouter_provider import OpenRouterProvider
-from app.providers.nvidia_provider import NVIDIAProvider
 from app.schemas.edital_schema import Cargo, EditalGeral, EditalResponse, Materia, StatusEdital
 from app.services.chunker_service import MarkdownChunker
+from app.services.cargo_mapper import CargoMapper, CargoSeed
+from app.services.cargo_anchor import AnchorEngine
 from app.services.cargo_specialist import CargoTitleAgent
 from app.services.cargo_vitaminizer import CargoVitaminizerAgent
 from app.services.subjects_scout import SubjectsScoutAgent
@@ -29,12 +31,13 @@ class AIService:
     """Orquestra provider chain, pipeline de agentes e persistência incremental."""
 
     def __init__(self) -> None:
-        self.ollama_provider = OllamaProvider()
+        self.ollama_provider = OllamaProvider(model="llama3.2:3b")
         self.groq_provider = GroqProvider()
-        self.nvidia_provider = NVIDIAProvider()
         self.openrouter_provider = OpenRouterProvider()
         self.gemini_provider = GeminiProvider()
 
+        self.cargo_mapper = CargoMapper()
+        self.cargo_anchor = AnchorEngine()
         self.cargo_agent = CargoTitleAgent()
         self.vitaminizer_agent = CargoVitaminizerAgent()
         self.subjects_scout_agent = SubjectsScoutAgent()
@@ -52,8 +55,6 @@ class AIService:
 
         if settings.groq_api_key:
             chain.append(self.groq_provider)
-        if settings.nvidia_api_key:
-            chain.append(self.nvidia_provider)
         if settings.openrouter_api_key:
             chain.append(self.openrouter_provider)
         if settings.gemini_api_key:
@@ -64,11 +65,22 @@ class AIService:
 
         return chain
 
+    @staticmethod
+    def _resolve_storage(content_hash: str) -> Optional[Path]:
+        for candidate in [
+            Path("backend/storage/processed") / content_hash,
+            Path("storage/processed") / content_hash,
+            Path("/app/storage/processed") / content_hash,
+        ]:
+            if candidate.exists():
+                return candidate
+        return None
+
     # ------------------------------------------------------------------ #
     #  Pipeline entry point                                                 #
     # ------------------------------------------------------------------ #
 
-    async def process_edital(self, content_hash: str, md_content: str) -> dict:
+    async def process_edital(self, content_hash: str, md_content: str, fingerprint: Optional[str] = None) -> dict:
         """Orquestra CargoTitleAgent → CargoVitaminizerAgent → SubjectsScoutAgent.
 
         Injeta a chain de providers em cada agente.
@@ -78,18 +90,53 @@ class AIService:
         # The parameter is retained for API contract consistency with the caller in endpoints.py.
         chain = self._get_provider_chain()
         logger.info(
-            "process_edital [%s]: chain=[%s]",
+            "process_edital [%s]: chain=[%s] fingerprint=[%s]",
             content_hash[:12],
             ", ".join(p.__class__.__name__ for p in chain),
+            fingerprint
         )
+
+        storage_path = self._resolve_storage(content_hash)
+        if storage_path is None:
+            logger.error("process_edital [%s]: storage path not found", content_hash[:12])
+            return {"edital": None, "cargos": [], "id": None}
+
+        seeds = self.cargo_mapper.map(content_hash)
+        if seeds:
+            logger.info("CargoMapper [%s]: %d seeds determinísticos.", content_hash[:12], len(seeds))
+        else:
+            logger.info("CargoMapper [%s]: nenhum seed → acionando LLM fallback.", content_hash[:12])
+            seeds = await self._llm_seed_fallback(content_hash, chain)
+
+        # Camada 2: Ancoragem de Texto (AnchorEngine)
+        # Extrai os recortes de texto específicos para cada seed do main.md
+        main_md = (storage_path / "main.md").read_text(encoding="utf-8") if (storage_path / "main.md").exists() else ""
+        
+        seed_titles = [s.titulo for s in seeds]
+        cargo_contexts = self.cargo_anchor.anchor(main_md, seed_titles, storage_path=storage_path)
+        logger.info("AnchorEngine [%s]: %d contextos ancorados.", content_hash[:12], len(cargo_contexts))
 
         cargos = await self.cargo_agent.hunt_titles(content_hash, chain)
+        cargos = self._merge_seeds_into_cargos(seeds, cargos)
+        
+        # Enriquecer cargos com contextos ancorados se disponíveis
         vitamin_data = await self.vitaminizer_agent.vitaminize(content_hash, cargos, chain)
+        
+        # Passar os contextos ancorados para o SubjectsScoutAgent (Extração Final)
         cargos_com_materias = await self.subjects_scout_agent.scout(
-            content_hash, vitamin_data.cargos_vitaminados, chain
+            content_hash, vitamin_data.cargos_vitaminados, chain, cargo_contexts=cargo_contexts
         )
 
-        return {"edital": vitamin_data.edital_info, "cargos": cargos_com_materias}
+        # Injetar o hash para persistência e vincular ao storage
+        vitamin_data.edital_info.content_hash = content_hash
+        vitamin_data.edital_info.fingerprint = fingerprint
+        
+        # Persistência no Banco de Dados
+        edital_db_id = await self._create_edital_db(vitamin_data.edital_info)
+        if edital_db_id:
+            await self._persist_and_broadcast(edital_db_id, cargos_com_materias, set())
+
+        return {"edital": vitamin_data.edital_info, "cargos": cargos_com_materias, "id": edital_db_id}
 
     # ------------------------------------------------------------------ #
     #  LLM extraction (kept for backwards-compat / direct chunk use)       #
@@ -130,6 +177,45 @@ class AIService:
         return list(seen.values())
 
     @staticmethod
+    def _merge_seeds_into_cargos(
+        seeds: List[CargoSeed],
+        llm_cargos: List,
+    ) -> List:
+        """Enrich/complement LLM cargo list with deterministic CargoMapper seeds."""
+        if not seeds:
+            return llm_cargos
+
+        def _norm(s: str) -> str:
+            import unicodedata
+            t = unicodedata.normalize("NFD", s.lower())
+            t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+            import re
+            return re.sub(r"[\s\-–/]+", " ", t).strip()
+
+        index = {_norm(c.titulo): c for c in llm_cargos}
+
+        for seed in seeds:
+            key = _norm(seed.titulo)
+            if key in index:
+                # Enrich: fill codigo_edital if LLM missed it
+                cargo = index[key]
+                if not getattr(cargo, "codigo_edital", None) and seed.codigo:
+                    cargo.codigo_edital = seed.codigo
+            else:
+                # Seed not found by LLM — add it
+                from app.schemas.edital_schema import CargoIdentificado
+                index[key] = CargoIdentificado(
+                    titulo=seed.titulo,
+                    codigo_edital=seed.codigo,
+                )
+                logger.info(
+                    "CargoMapper seed adicionado (não encontrado pelo LLM): '%s'",
+                    seed.titulo,
+                )
+
+        return list(index.values())
+
+    @staticmethod
     def _merge_cargos(base: List[Cargo], incoming: List[Cargo]) -> List[Cargo]:
         index = {c.titulo: c for c in base}
         for cargo in incoming:
@@ -139,6 +225,57 @@ class AIService:
             else:
                 index[cargo.titulo] = cargo
         return list(index.values())
+
+    # ------------------------------------------------------------------ #
+    #  LLM seed fallback (triggered only when deterministic scan = 0)      #
+    # ------------------------------------------------------------------ #
+
+    async def _llm_seed_fallback(
+        self, content_hash: str, chain: List[BaseLLMProvider]
+    ) -> "List[CargoSeed]":
+        """Ultra-short LLM call: first 3000 chars of main.md → cargo names only."""
+        from app.services.cargo_mapper import CargoSeed
+        from app.schemas.edital_schema import CargoIdentificado
+        from pydantic import BaseModel
+
+        storage = self._resolve_storage(content_hash)
+        if storage is None:
+            return []
+
+        main_md = storage / "main.md"
+        if not main_md.exists():
+            return []
+
+        excerpt = main_md.read_text(encoding="utf-8")[:3_000]
+
+        prompt = (
+            "Analise o início do edital de concurso público abaixo.\n"
+            "Liste APENAS os nomes dos cargos ou funções mencionados (incluindo 'nomes de relacionamento').\n"
+            'Responda EXCLUSIVAMENTE em JSON: {"cargos": [{"titulo": "nome do cargo", "codigo_edital": null}]}\n\n'
+            f"EDITAL (início):\n{excerpt}"
+        )
+
+        class _CargoList(BaseModel):
+            cargos: List[CargoIdentificado]
+
+        for provider in chain:
+            try:
+                result: _CargoList = await provider.generate_json(prompt=prompt, schema=_CargoList)
+                if result.cargos:
+                    seeds = [
+                        CargoSeed(titulo=c.titulo, codigo=c.codigo_edital, source_file="llm_fallback")
+                        for c in result.cargos
+                    ]
+                    logger.info(
+                        "LLM seed fallback [%s]: %s → %d seeds",
+                        content_hash[:12], provider.__class__.__name__, len(seeds),
+                    )
+                    return seeds
+            except Exception as exc:
+                logger.warning("LLM seed fallback %s falhou: %s", provider.__class__.__name__, exc)
+
+        logger.error("LLM seed fallback [%s]: todos providers falharam.", content_hash[:12])
+        return []
 
     # ------------------------------------------------------------------ #
     #  Database persistence                                                 #
@@ -153,6 +290,8 @@ class AIService:
                 banca=result.banca,
                 data_prova=result.data_prova,
                 link=result.link_edital,
+                content_hash=result.content_hash,
+                fingerprint=result.fingerprint,
                 status=StatusEdital.INGESTADO,
             )
             db.add(edital_db)

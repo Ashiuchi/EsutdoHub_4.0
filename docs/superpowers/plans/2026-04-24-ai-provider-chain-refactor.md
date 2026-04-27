@@ -238,7 +238,7 @@ async def test_process_edital_returns_empty_cargos_when_all_fail():
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_ai_service_orchestration.py -v 2>&1 | tail -20
 ```
 
@@ -518,7 +518,7 @@ class AIService:
 - [ ] **Step 4: Run tests — expect pass**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_ai_service_orchestration.py -v 2>&1 | tail -20
 ```
 
@@ -605,7 +605,7 @@ async def test_hunt_titles_passes_chain_to_deep_scan(tmp_path):
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_cargo_specialist.py::test_deep_scan_uses_first_working_provider_in_chain tests/services/test_cargo_specialist.py::test_deep_scan_returns_empty_when_all_providers_fail -v 2>&1 | tail -15
 ```
 
@@ -807,7 +807,7 @@ class CargoTitleAgent:
 - [ ] **Step 4: Run all cargo_specialist tests**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_cargo_specialist.py -v 2>&1 | tail -25
 ```
 
@@ -887,7 +887,7 @@ async def test_extract_global_metadata_falls_back_to_second_provider():
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_cargo_vitaminizer.py::test_discover_structure_falls_back_to_second_provider tests/services/test_cargo_vitaminizer.py::test_extract_global_metadata_falls_back_to_second_provider -v 2>&1 | tail -15
 ```
 
@@ -1077,7 +1077,7 @@ class CargoVitaminizerAgent:
 - [ ] **Step 4: Run all cargo_vitaminizer tests**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_cargo_vitaminizer.py -v 2>&1 | tail -25
 ```
 
@@ -1151,7 +1151,7 @@ async def test_extract_for_cargo_returns_empty_when_all_fail():
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_subjects_scout.py::test_extract_for_cargo_falls_back_to_second_provider -v 2>&1 | tail -10
 ```
 
@@ -1266,7 +1266,7 @@ class SubjectsScoutAgent:
 - [ ] **Step 4: Run all subjects_scout tests**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_subjects_scout.py -v 2>&1 | tail -25
 ```
 
@@ -1452,7 +1452,7 @@ Expected: `{"status":"healthy","service":"backend"}`.
 - [ ] **Step 3: Run full test suite**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/ -v --tb=short 2>&1 | tail -30
 ```
 
@@ -1501,7 +1501,7 @@ Expected: `{"status":"healthy","service":"backend"}`.
 
 ```bash
 curl -s -X POST http://localhost:8000/api/v1/upload \
-  -F "file=@/mnt/d/DevOps/EstudoHub_4.0/sample_editais/cesgranrio/bb0122_edital.pdf" \
+  -F "file=@/mnt/c/Dev/EstudoHub_4.0/sample_editais/cesgranrio/bb0122_edital.pdf" \
   | python3 -m json.tool
 ```
 

@@ -4,7 +4,7 @@
 
 **Goal:** Make Jenkins run reliably inside Docker on WSL, eliminating volume mapping errors and missing-tool failures, with full test and SonarQube integration.
 
-**Architecture:** Jenkins container mounts the project dir to the exact WSL path `/mnt/d/DevOps/EstudoHub_4.0`, uses that path as its workspace, and delegates all work (tests, scans) to Docker via the host socket. A reset script provides a clean rebuild entry-point.
+**Architecture:** Jenkins container mounts the project dir to the exact WSL path `/mnt/c/Dev/EstudoHub_4.0`, uses that path as its workspace, and delegates all work (tests, scans) to Docker via the host socket. A reset script provides a clean rebuild entry-point.
 
 **Tech Stack:** Jenkins LTS, Docker-in-Docker (socket mount), docker-compose-plugin, SonarQube Community, pytest + coverage, Makefile, bash.
 
@@ -108,8 +108,8 @@ services:
     volumes:
       - jenkins_data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - .:/mnt/d/DevOps/EstudoHub_4.0
-    working_dir: /mnt/d/DevOps/EstudoHub_4.0
+      - .:/mnt/c/Dev/EstudoHub_4.0
+    working_dir: /mnt/c/Dev/EstudoHub_4.0
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -145,13 +145,13 @@ git commit -m "fix(jenkins): add host.docker.internal resolution for WSL"
 pipeline {
     agent {
         node {
-            customWorkspace '/mnt/d/DevOps/EstudoHub_4.0'
+            customWorkspace '/mnt/c/Dev/EstudoHub_4.0'
         }
     }
 
     environment {
         VAULT_ADDR  = "http://host.docker.internal:8205"
-        PROJECT_DIR = "/mnt/d/DevOps/EstudoHub_4.0"
+        PROJECT_DIR = "/mnt/c/Dev/EstudoHub_4.0"
     }
 
     stages {
@@ -209,7 +209,7 @@ pipeline {
 ```
 
 Key changes:
-- `agent { node { customWorkspace '/mnt/d/DevOps/EstudoHub_4.0' } }` — Jenkins uses the mounted project dir directly.
+- `agent { node { customWorkspace '/mnt/c/Dev/EstudoHub_4.0' } }` — Jenkins uses the mounted project dir directly.
 - `VAULT_ADDR` points to `host.docker.internal` instead of `localhost`.
 - `mkdir -p backend/test-reports` before pytest to avoid "no such file" errors.
 - pytest coverage output is `test-reports/coverage.xml` (relative to `/app` inside the backend container, which maps to `backend/test-reports/coverage.xml` on the host).
@@ -222,7 +222,7 @@ Key changes:
 cat Jenkinsfile
 ```
 
-Confirm: first line of `agent {}` block is `node {`, and `customWorkspace '/mnt/d/DevOps/EstudoHub_4.0'` is present.
+Confirm: first line of `agent {}` block is `node {`, and `customWorkspace '/mnt/c/Dev/EstudoHub_4.0'` is present.
 
 - [ ] **Step 3: Commit**
 
@@ -313,7 +313,7 @@ Expected output: `Docker Compose version v2.x.x`
 - [ ] **Step 4: Verify the workspace path is accessible**
 
 ```bash
-docker exec jenkins ls /mnt/d/DevOps/EstudoHub_4.0/Jenkinsfile
+docker exec jenkins ls /mnt/c/Dev/EstudoHub_4.0/Jenkinsfile
 ```
 
 Expected: prints `Jenkinsfile` (not "No such file").
@@ -331,7 +331,7 @@ Confirm all stages complete: Prepare ✓, Tests & Coverage ✓, SonarQube Analys
 **Spec coverage:**
 | Requirement | Covered by |
 |---|---|
-| Map project to `/mnt/d/DevOps/EstudoHub_4.0` in container | Task 2 (already present, confirmed) |
+| Map project to `/mnt/c/Dev/EstudoHub_4.0` in container | Task 2 (already present, confirmed) |
 | `working_dir` set | Task 2 (already present, confirmed) |
 | `user: root` | Task 2 (already present, confirmed) |
 | Docker socket mounted | Task 2 (already present, confirmed) |

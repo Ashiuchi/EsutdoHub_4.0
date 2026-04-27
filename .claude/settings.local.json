@@ -148,7 +148,20 @@
       "Read(//root/**)",
       "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_ai_service_orchestration.py tests/services/test_ai_service_coverage.py tests/providers/test_new_providers.py -v)",
       "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_cargo_specialist.py::test_deep_scan_uses_first_working_provider_in_chain tests/services/test_cargo_specialist.py::test_deep_scan_returns_empty_when_all_providers_fail -v)",
-      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_cargo_specialist.py -v)"
+      "Bash(/mnt/d/DevOps/EstudoHub_4.0/venv/bin/pytest tests/services/test_cargo_specialist.py -v)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(make *)",
+      "Bash(grep -A 3 \"http_code=\\\\$\\(curl\" /mnt/d/DevOps/EstudoHub_4.0/Jenkinsfile)",
+      "Bash(echo \"HTTP: $\\(curl -o /dev/null -s -w '%{http_code}' http://localhost:8205/v1/sys/health\\)\")",
+      "Bash(bash *)",
+      "Bash(echo \"Pull iniciado em background \\(PID: $!\\)\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(PGPASSWORD=estudohub_pass psql -h localhost -p 5432 -U estudohub_admin -d estudohub -c \"SELECT COUNT\\(*\\) FROM editais;\")",
+      "Bash(/mnt/c/Dev/EstudoHub_4.0/.venv_pescador/bin/python *)",
+      "Bash(/mnt/c/Dev/EstudoHub_4.0/.venv_pescador/bin/pip list *)",
+      "Bash(/mnt/c/Dev/EstudoHub_4.0/venv/bin/python *)",
+      "Bash(docker exec *)",
+      "Bash(echo \"PID: $!\")"
     ]
   }
 }

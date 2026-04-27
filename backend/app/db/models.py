@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Float, Text, ForeignKey, DateTime, Integer
+from sqlalchemy import Column, String, Float, Text, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -26,6 +26,8 @@ class Edital(Base):
     exam_cities = Column(Text, nullable=True)
     data_prova = Column(String(50), nullable=True)
     link = Column(Text, nullable=True)
+    content_hash = Column(String(64), nullable=True, unique=True, index=True)
+    fingerprint = Column(String(64), nullable=True, index=True)
     status = Column(String(50), nullable=False, default="ingestado", server_default="ingestado")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -43,13 +45,13 @@ class Cargo(Base):
     codigo_edital = Column(String(255), nullable=True)
     
     # DNA 26 Fields
-    vagas_ac = Column(Integer, nullable=True, default=0)
-    vagas_cr = Column(Integer, nullable=True, default=0)
-    vagas_pcd = Column(Integer, nullable=True, default=0)
-    vagas_negros = Column(Integer, nullable=True, default=0)
-    vagas_indigenas = Column(Integer, nullable=True, default=0)
-    vagas_trans = Column(Integer, nullable=True, default=0)
-    vagas_total = Column(Integer, nullable=True, default=0)
+    vagas_ac = Column(String(50), nullable=True)
+    vagas_cr = Column(String(50), nullable=True)
+    vagas_pcd = Column(String(50), nullable=True)
+    vagas_negros = Column(String(50), nullable=True)
+    vagas_indigenas = Column(String(50), nullable=True)
+    vagas_trans = Column(String(50), nullable=True)
+    vagas_total = Column(String(50), nullable=True)
     
     salario = Column(Float, nullable=True)
     escolaridade = Column(String(100), nullable=True)

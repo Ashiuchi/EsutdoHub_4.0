@@ -36,3 +36,5 @@ vault/data/*
 
 # Jenkins
 jenkins_data/
+storage/
+storage/

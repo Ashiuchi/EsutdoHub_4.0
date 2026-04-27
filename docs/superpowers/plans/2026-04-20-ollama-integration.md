@@ -55,14 +55,14 @@ settings = Settings()
 
 - [ ] **Step 3: Verify imports and syntax**
 
-Run: `cd /mnt/d/DevOps/EstudoHub_4.0/backend && python -c "from app.core.config import settings; print(f'Config loaded: {settings.llm_strategy}')"`
+Run: `cd /mnt/c/Dev/EstudoHub_4.0/backend && python -c "from app.core.config import settings; print(f'Config loaded: {settings.llm_strategy}')"`
 
 Expected: Output shows `Config loaded: local_first`
 
 - [ ] **Step 4: Commit configuration changes**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add backend/app/core/config.py
 git commit -m "feat: add LLM provider configuration variables"
 ```
@@ -80,15 +80,15 @@ git commit -m "feat: add LLM provider configuration variables"
 - [ ] **Step 1: Create providers package**
 
 ```bash
-mkdir -p /mnt/d/DevOps/EstudoHub_4.0/backend/app/providers
-touch /mnt/d/DevOps/EstudoHub_4.0/backend/app/providers/__init__.py
+mkdir -p /mnt/c/Dev/EstudoHub_4.0/backend/app/providers
+touch /mnt/c/Dev/EstudoHub_4.0/backend/app/providers/__init__.py
 ```
 
 - [ ] **Step 2: Create test directory**
 
 ```bash
-mkdir -p /mnt/d/DevOps/EstudoHub_4.0/backend/tests/providers
-touch /mnt/d/DevOps/EstudoHub_4.0/backend/tests/providers/__init__.py
+mkdir -p /mnt/c/Dev/EstudoHub_4.0/backend/tests/providers
+touch /mnt/c/Dev/EstudoHub_4.0/backend/tests/providers/__init__.py
 ```
 
 - [ ] **Step 3: Write test for BaseLLMProvider**
@@ -125,7 +125,7 @@ async def test_base_llm_provider_has_generate_json_method():
 - [ ] **Step 4: Run test to verify it fails**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/providers/test_base_provider.py -v
 ```
 
@@ -212,7 +212,7 @@ __all__ = ['BaseLLMProvider']
 - [ ] **Step 7: Run tests to verify they pass**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/providers/test_base_provider.py -v
 ```
 
@@ -221,7 +221,7 @@ Expected: PASS
 - [ ] **Step 8: Commit provider base class**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add backend/app/providers/ backend/tests/providers/
 git commit -m "feat: create BaseLLMProvider abstract base class"
 ```
@@ -350,7 +350,7 @@ async def test_ollama_provider_timeout():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/providers/test_ollama_provider.py -v
 ```
 
@@ -427,7 +427,7 @@ class OllamaProvider(BaseLLMProvider):
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/providers/test_ollama_provider.py -v
 ```
 
@@ -436,7 +436,7 @@ Expected: PASS (all tests pass)
 - [ ] **Step 5: Commit OllamaProvider**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add backend/app/providers/ollama_provider.py backend/tests/providers/test_ollama_provider.py
 git commit -m "feat: implement OllamaProvider with JSON validation and error handling"
 ```
@@ -548,7 +548,7 @@ async def test_gemini_provider_schema_validation_error():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/providers/test_gemini_provider.py -v
 ```
 
@@ -630,7 +630,7 @@ class GeminiProvider(BaseLLMProvider):
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/providers/test_gemini_provider.py -v
 ```
 
@@ -639,7 +639,7 @@ Expected: PASS (all tests pass)
 - [ ] **Step 5: Commit GeminiProvider**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add backend/app/providers/gemini_provider.py backend/tests/providers/test_gemini_provider.py
 git commit -m "feat: implement GeminiProvider with async support and timeout handling"
 ```
@@ -781,7 +781,7 @@ async def test_ai_service_all_providers_exhausted():
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_ai_service_orchestration.py -v
 ```
 
@@ -876,7 +876,7 @@ class AIService:
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/services/test_ai_service_orchestration.py -v
 ```
 
@@ -885,7 +885,7 @@ Expected: PASS (all tests pass)
 - [ ] **Step 5: Run all provider tests to ensure nothing broke**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/providers/ tests/services/ -v
 ```
 
@@ -894,7 +894,7 @@ Expected: All tests pass
 - [ ] **Step 6: Commit AIService refactor**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add backend/app/services/ai_service.py backend/tests/services/test_ai_service_orchestration.py
 git commit -m "feat: refactor AIService as provider orchestrator with failover strategy"
 ```
@@ -910,7 +910,7 @@ git commit -m "feat: refactor AIService as provider orchestrator with failover s
 - [ ] **Step 1: Check current .env file**
 
 ```bash
-cat /mnt/d/DevOps/EstudoHub_4.0/.env
+cat /mnt/c/Dev/EstudoHub_4.0/.env
 ```
 
 - [ ] **Step 2: Add LLM configuration to .env**
@@ -956,7 +956,7 @@ GEMINI_TIMEOUT=15
 - [ ] **Step 4: Commit environment configuration**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add .env .env.example
 git commit -m "feat: add LLM provider environment configuration"
 ```
@@ -971,7 +971,7 @@ git commit -m "feat: add LLM provider environment configuration"
 - [ ] **Step 1: Read current docker-compose.yml**
 
 ```bash
-cat /mnt/d/DevOps/EstudoHub_4.0/docker-compose.yml
+cat /mnt/c/Dev/EstudoHub_4.0/docker-compose.yml
 ```
 
 - [ ] **Step 2: Add extra_hosts to backend service**
@@ -1020,7 +1020,7 @@ services:
 - [ ] **Step 3: Verify docker-compose syntax**
 
 ```bash
-docker-compose -f /mnt/d/DevOps/EstudoHub_4.0/docker-compose.yml config
+docker-compose -f /mnt/c/Dev/EstudoHub_4.0/docker-compose.yml config
 ```
 
 Expected: Valid YAML output, no errors
@@ -1028,7 +1028,7 @@ Expected: Valid YAML output, no errors
 - [ ] **Step 4: Commit docker-compose updates**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add docker-compose.yml
 git commit -m "feat: add extra_hosts configuration for Ollama connectivity"
 ```
@@ -1097,7 +1097,7 @@ def setup_logging():
 Locate your FastAPI app initialization file (usually `backend/app/main.py` or `backend/main.py`):
 
 ```bash
-find /mnt/d/DevOps/EstudoHub_4.0/backend -name "main.py" -o -name "app.py" | head -5
+find /mnt/c/Dev/EstudoHub_4.0/backend -name "main.py" -o -name "app.py" | head -5
 ```
 
 - [ ] **Step 3: Initialize logging in app startup**
@@ -1116,7 +1116,7 @@ setup_logging()
 - [ ] **Step 4: Commit logging configuration**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add backend/app/logging_config.py
 git commit -m "feat: configure Python logging for provider operations"
 ```
@@ -1131,7 +1131,7 @@ git commit -m "feat: configure Python logging for provider operations"
 - [ ] **Step 1: Check if trt.pdf exists**
 
 ```bash
-find /mnt/d/DevOps/EstudoHub_4.0 -name "trt.pdf" -type f
+find /mnt/c/Dev/EstudoHub_4.0 -name "trt.pdf" -type f
 ```
 
 If not found, you'll need to place a test PDF file in the project.
@@ -1185,9 +1185,9 @@ async def test_extract_edital_from_pdf():
 - [ ] **Step 3: Create test fixture directory and sample**
 
 ```bash
-mkdir -p /mnt/d/DevOps/EstudoHub_4.0/backend/tests/fixtures
-mkdir -p /mnt/d/DevOps/EstudoHub_4.0/backend/tests/integration
-touch /mnt/d/DevOps/EstudoHub_4.0/backend/tests/integration/__init__.py
+mkdir -p /mnt/c/Dev/EstudoHub_4.0/backend/tests/fixtures
+mkdir -p /mnt/c/Dev/EstudoHub_4.0/backend/tests/integration
+touch /mnt/c/Dev/EstudoHub_4.0/backend/tests/integration/__init__.py
 ```
 
 - [ ] **Step 4: Create sample markdown fixture**
@@ -1250,7 +1250,7 @@ CESPE/CEBRASPE
 - [ ] **Step 5: Run unit/integration tests**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 # Run all unit tests first
 python -m pytest tests/providers/ tests/services/ -v
 
@@ -1274,7 +1274,7 @@ ollama list
 Then run the E2E test:
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/integration/test_edital_extraction_e2e.py -v -s
 ```
 
@@ -1293,7 +1293,7 @@ PASSED
 - [ ] **Step 7: Commit integration test**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git add backend/tests/integration/ backend/tests/fixtures/
 git commit -m "test: add E2E integration test for edital extraction with Ollama"
 ```
@@ -1308,7 +1308,7 @@ git commit -m "test: add E2E integration test for edital extraction with Ollama"
 - [ ] **Step 1: Run complete test suite**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -m pytest tests/ -v --tb=short
 ```
 
@@ -1317,7 +1317,7 @@ Expected: All tests pass (except integration test if Ollama not running)
 - [ ] **Step 2: Verify no import errors**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -c "from app.services.ai_service import AIService; from app.providers.ollama_provider import OllamaProvider; from app.providers.gemini_provider import GeminiProvider; print('✓ All imports successful')"
 ```
 
@@ -1326,7 +1326,7 @@ Expected: `✓ All imports successful`
 - [ ] **Step 3: Check logging works**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0/backend
+cd /mnt/c/Dev/EstudoHub_4.0/backend
 python -c "
 import logging
 from app.logging_config import setup_logging
@@ -1360,7 +1360,7 @@ Create a checklist of what was implemented:
 - [ ] **Step 5: Final commit**
 
 ```bash
-cd /mnt/d/DevOps/EstudoHub_4.0
+cd /mnt/c/Dev/EstudoHub_4.0
 git log --oneline -10  # View recent commits
 git status  # Should be clean
 ```

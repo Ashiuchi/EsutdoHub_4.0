@@ -51,7 +51,10 @@ class CargoTitleAgent:
 
     async def hunt_titles(self, content_hash: str, chain: List[BaseLLMProvider]) -> List[CargoIdentificado]:
         """Identifica todos os títulos e códigos de cargos como instâncias únicas."""
-        storage_path = Path("storage/processed") / content_hash
+        storage_path = Path("backend/storage/processed") / content_hash
+        if not storage_path.exists():
+            storage_path = Path("storage/processed") / content_hash
+        
         tables_dir = storage_path / "tables"
         main_md_path = storage_path / "main.md"
 

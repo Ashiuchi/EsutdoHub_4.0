@@ -1,14 +1,32 @@
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: estudohub_admin
-      POSTGRES_PASSWORD: dev_secret_vault_99
-      POSTGRES_DB: estudohub
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+      - K:\estudohub_storage:/storage_k
+      - ./storage:/app/storage
     ports:
-      - "5432:5432"
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://estudohub_admin:estudohub_pass@db:5432/estudohub
+      - OLLAMA_HOST=http://ollama:11434
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    depends_on:
+      - db
+      - ollama
+
+  db:
+    image: postgres:16
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=estudohub_admin
+      - POSTGRES_PASSWORD=estudohub_pass
+      - POSTGRES_DB=estudohub
+    ports:
+      - "5432:5432"
 
   ollama:
     image: ollama/ollama
@@ -16,32 +34,13 @@ services:
       - ollama_data:/root/.ollama
     ports:
       - "11434:11434"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/11434'"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 15s
-
-  backend:
-    build: ./backend
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    env_file:
-      - ./backend/.env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: always
-    depends_on:
-      db:
-        condition: service_started
-      cache:
-        condition: service_started
-      ollama:
-        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   frontend:
     build: ./frontend
@@ -51,12 +50,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://${REMOTE_IP:-localhost}:8000
-
-  cache:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
 
 volumes:
   postgres_data:

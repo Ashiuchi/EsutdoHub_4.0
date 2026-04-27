@@ -19,13 +19,13 @@ class Materia(BaseModel):
 class Cargo(BaseModel):
     titulo: str
     codigo_edital: Optional[str] = None
-    vagas_ac: Optional[int] = 0
-    vagas_cr: Optional[int] = 0
-    vagas_pcd: Optional[int] = 0
-    vagas_negros: Optional[int] = 0
-    vagas_indigenas: Optional[int] = 0
-    vagas_trans: Optional[int] = 0
-    vagas_total: Optional[int] = 0
+    vagas_ac: Optional[str] = None
+    vagas_cr: Optional[str] = None
+    vagas_pcd: Optional[str] = None
+    vagas_negros: Optional[str] = None
+    vagas_indigenas: Optional[str] = None
+    vagas_trans: Optional[str] = None
+    vagas_total: Optional[str] = None
     salario: Optional[float] = 0.0
     escolaridade: Optional[str] = "Pendente"
     area: Optional[str] = "Pendente"
@@ -49,6 +49,8 @@ class EditalGeral(BaseModel):
     exam_cities: Optional[str] = "Pendente"
     data_prova: Optional[str] = "Pendente"
     link_edital: Optional[str] = None
+    content_hash: Optional[str] = None
+    fingerprint: Optional[str] = None
     cargos: List[Cargo] = []
 
 
@@ -56,6 +58,8 @@ class EditalResponse(EditalGeral):
     """EditalGeral enriquecido com campos do banco após persistência."""
     id: Optional[uuid.UUID] = None
     status: str = StatusEdital.INGESTADO
+    content_hash: Optional[str] = None
+    fingerprint: Optional[str] = None
 
 
 class CargoIdentificado(BaseModel):

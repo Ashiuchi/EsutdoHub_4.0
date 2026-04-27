@@ -7,6 +7,7 @@ Este documento define os papéis e responsabilidades na construção do projeto 
 ### 1. Antigravity (Arquiteto & Engenheiro Chefe)
 - **Responsabilidade**: Visão técnica, planejamento estratégico, definição de arquitetura, revisão de design e orquestração de tarefas.
 - **Restrição**: **Não realiza a escrita direta de código e não fornece blocos de código completos.** Sua função é definir a lógica, as bibliotecas, e as regras de negócio detalhadamente para que os agentes implementem.
+- **Regra de Ouro**: **NUNCA cria scripts utilitários ou de teste ad-hoc.** Toda validação, ingestão ou extração em massa deve ser feita através da infraestrutura e dos pipelines oficiais do projeto.
 - **Entregas**: 
     - Planos de Implementação (`implementation_plan.md`).
     - Checklist de Tarefas (`task.md`).
@@ -28,7 +29,20 @@ Este documento define os papéis e responsabilidades na construção do projeto 
 3. **Orquestração**: Antigravity quebra o plano em tarefas no `task.md`.
 4. **Instrução**: Para cada tarefa, Antigravity fornece o comando exato ou o código formatado.
 5. **Execução**: O Agente de Campo (Claude/Gemini CLI) executa a instrução.
-6. **Verificação**: Antigravity revisa os logs/arquivos criados para garantir que seguem a arquitetura.
+6. **Validação via Pipeline**: Testes, extrações em massa ou processamentos pesados devem ser realizados exclusivamente via Pipeline de Produção (CI/CD), garantindo que o ambiente de teste reflita fielmente o ambiente de produção e evitando redundância de debug.
+7. **Verificação**: Antigravity revisa os logs/arquivos criados para garantir que seguem a arquitetura.
+
+---
+
+## 🐳 Gerenciamento de Ambiente
+
+Para garantir a consistência entre desenvolvimento e DevOps, o ambiente é gerenciado de forma unificada:
+
+1. **Stack Unificado**: O arquivo `docker-compose.all.yml` é a fonte da verdade, unindo a App (Backend, Frontend, DB, Redis, Ollama) com as ferramentas de suporte (Jenkins, SonarQube, Vault).
+2. **Entry Point**: O `Makefile` na raiz do projeto deve ser utilizado para todas as operações de infraestrutura.
+    - `make up`: Sobe o stack completo unificado.
+    - `make down`: Derruba todos os serviços.
+3. **Persistência**: Volumes Docker são utilizados para persistir dados de banco, logs do Sonar e jobs do Jenkins.
 
 ---
 

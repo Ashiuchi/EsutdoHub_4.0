@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class GeminiProvider(BaseLLMProvider):
     """Cloud-based Google Gemini LLM provider"""
 
-    def __init__(self, api_key: str = None, model_name: str = "gemini-2.0-flash", timeout: int = None):
+    def __init__(self, api_key: str = None, model_name: str = "gemini-2.5-pro", timeout: int = None):
         self.api_key = api_key or settings.gemini_api_key
         self.model_name = model_name
         self.timeout = timeout or settings.gemini_timeout

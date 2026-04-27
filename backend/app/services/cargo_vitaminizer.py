@@ -139,8 +139,22 @@ class CargoVitaminizerAgent:
             )
 
     async def vitaminize(self, content_hash: str, identified_cargos: List[CargoIdentificado], chain: List[BaseLLMProvider]) -> VitaminData:
-        storage_path = Path("backend/storage/processed") / content_hash
-        if not storage_path.exists(): storage_path = Path("storage/processed") / content_hash
+        storage_path = None
+        for candidate in [
+            Path("backend/storage/processed") / content_hash,
+            Path("storage/processed") / content_hash,
+            Path("/app/storage/processed") / content_hash,
+        ]:
+            if candidate.exists():
+                storage_path = candidate
+                break
+        
+        if not storage_path:
+            logger.error(f"CargoVitaminizerAgent: Storage não encontrado para {content_hash}")
+            return VitaminData(
+                edital_info=EditalGeral(orgao="Pendente", banca="Pendente"),
+                cargos_vitaminados=[Cargo(titulo=c.titulo, status="error") for c in identified_cargos]
+            )
             
         main_md = (storage_path / "main.md").read_text(encoding="utf-8") if (storage_path / "main.md").exists() else ""
         table_files = sorted((storage_path / "tables").glob("*.md")) if (storage_path / "tables").exists() else []
@@ -164,11 +178,11 @@ class CargoVitaminizerAgent:
 
             cargo_vitaminado = Cargo(
                 titulo=cargo_id.titulo,
-                vagas_ac=v_data.get("vagas_ac", 0),
-                vagas_pcd=v_data.get("vagas_pcd", 0),
-                vagas_cr=v_data.get("vagas_cr", 0),
-                vagas_negros=v_data.get("vagas_negros", 0),
-                vagas_total=v_data.get("vagas_total", 0) or sum(v for k, v in v_data.items() if "total" not in k),
+                vagas_ac=str(v_data.get("vagas_ac", 0)),
+                vagas_pcd=str(v_data.get("vagas_pcd", 0)),
+                vagas_cr=str(v_data.get("vagas_cr", 0)),
+                vagas_negros=str(v_data.get("vagas_negros", 0)),
+                vagas_total=str(v_data.get("vagas_total", 0) or sum(v for k, v in v_data.items() if "total" not in k)),
                 salario=salario,
                 status="vitaminado"
             )

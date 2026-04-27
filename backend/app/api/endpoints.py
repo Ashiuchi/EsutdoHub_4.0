@@ -17,6 +17,7 @@ from app.schemas.edital_schema import IngestionResponse, StatusEdital
 from app.services.pdf_service import PDFService
 from app.services.subtractive_service import SubtractiveAgent, StorageResult
 from app.services.ai_service import AIService
+from app.services.fingerprint_service import FingerprintService
 
 router = APIRouter()
 subtractive_agent = SubtractiveAgent()
@@ -66,23 +67,30 @@ async def _process_edital_task(content_hash: str, temp_path: str):
 
         _broadcast_log(content_hash, f"PDF extraído: {len(md_content)} caracteres")
 
-        # 2. Processamento Subtrativo
-        _broadcast_log(content_hash, "Iniciando processamento subtrativo…")
-        enxuto_md, fragments = subtractive_agent.process(md_content)
+        # 2. Gerar Fingerprint (DNA estrutural)
+        _broadcast_log(content_hash, "Gerando fingerprint estrutural…")
+        try:
+            async with aiofiles.open(temp_path, mode="rb") as f:
+                pdf_bytes = await f.read()
+            fingerprint = FingerprintService.generate_fingerprint(pdf_bytes, md_content)
+        except Exception as e:
+            logger.warning("Erro ao gerar fingerprint: %s. Continuando sem.", e)
+            fingerprint = None
 
-        # 3. Persistência em Disco
-        result_data = StorageResult(
-            content_hash=content_hash,
-            stripped_md=enxuto_md,
-            tables={k: v for k, v in fragments.items() if k.startswith("FRAGMENT_TABLE_")},
-            patterns={k: v for k, v in fragments.items() if not k.startswith("FRAGMENT_TABLE_")}
-        )
+        # 3. Processamento Subtrativo (A Trindade)
+        _broadcast_log(content_hash, "Iniciando processamento subtrativo (Gerando Trindade de Markdowns)…")
+        result_data = subtractive_agent.process(md_content)
+        result_data.content_hash = content_hash
+
+        # 4. Persistência em Disco
         storage_path = subtractive_agent.persist(result_data)
         _broadcast_log(content_hash, f"Edital persistido em: {storage_path}")
 
-        # 4. Orquestração de IA (CargoTitle → Vitaminizer → SubjectsScout)
+        # 5. Orquestração de IA (CargoTitle → Vitaminizer → SubjectsScout)
         _broadcast_log(content_hash, "Iniciando inteligência artificial (Pipeline Agnostico)…")
-        result = await ai_service.process_edital(content_hash, enxuto_md)
+        # Usamos main_md (enxuto com marcadores) para ancoragem
+        result = await ai_service.process_edital(content_hash, result_data.main_md, fingerprint=fingerprint)
+
 
         # 5. Notificar via SSE (broadcast de dados final)
         log_streamer.broadcast({

@@ -66,7 +66,7 @@ Expected output: empty table (no running containers).
 
 - [ ] **Step 2.1: Create the file**
 
-Create `/mnt/d/DevOps/EstudoHub_4.0/docker-compose.all.yml` with exactly this content:
+Create `/mnt/c/Dev/EstudoHub_4.0/docker-compose.all.yml` with exactly this content:
 
 ```yaml
 include:
