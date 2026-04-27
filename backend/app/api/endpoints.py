@@ -125,6 +125,7 @@ async def upload_edital(background_tasks: BackgroundTasks, file: UploadFile = Fi
 
     db = SessionLocal()
     try:
+        # TOCTOU: concurrent duplicate uploads may reach _process_edital_task; the DB unique constraint will reject the second insert
         existing = db.query(models.Edital).filter_by(content_hash=content_hash).first()
         if existing:
             return IngestionResponse(
