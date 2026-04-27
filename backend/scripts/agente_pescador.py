@@ -218,6 +218,9 @@ class AgentePescador:
 if __name__ == "__main__":
     agente = AgentePescador()
     while True:
-        agente.run()
+        try:
+            agente.run()
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Ciclo interrompido com erro: {e}. Retomando em 1h.")
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Ciclo completo. Dormindo 1h antes de re-verificar...")
         time.sleep(3600)
