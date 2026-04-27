@@ -18,6 +18,8 @@ from app.services.pdf_service import PDFService
 from app.services.subtractive_service import SubtractiveAgent, StorageResult
 from app.services.ai_service import AIService
 from app.services.fingerprint_service import FingerprintService
+from app.db.database import SessionLocal
+from app.db import models
 
 router = APIRouter()
 subtractive_agent = SubtractiveAgent()
@@ -177,3 +179,67 @@ async def cockpit_stream(request: Request) -> EventSourceResponse:
             logger.info("Cockpit SSE: cliente desconectado.")
 
     return EventSourceResponse(_event_generator())
+
+
+@router.get("/", response_model=list)
+async def list_editais():
+    """Retorna todos os editais processados formatados para o Cockpit."""
+    db = SessionLocal()
+    try:
+        from sqlalchemy.orm import joinedload
+        # Carrega editais, cargos e matérias (com tópicos)
+        editais = db.query(models.Edital).options(
+            joinedload(models.Edital.cargos).joinedload(models.Cargo.materias).joinedload(models.Materia.topicos)
+        ).order_by(models.Edital.created_at.desc()).limit(10).all()
+        
+        # Formatação manual para bater com a interface do Frontend
+        result = []
+        for e in editais:
+            edital_dict = {
+                "id": str(e.id),
+                "title": e.title or e.orgao,
+                "orgao": e.orgao,
+                "banca": e.banca,
+                "published_at": e.published_at,
+                "inscription_start": e.inscription_start,
+                "inscription_end": e.inscription_end,
+                "data_prova": e.data_prova,
+                "status": e.status,
+                "cargos": []
+            }
+            for c in e.cargos:
+                cargo_dict = {
+                    "titulo": c.titulo,
+                    "salario": c.salario,
+                    "escolaridade": c.escolaridade,
+                    "vagas_total": c.vagas_total,
+                    "status": c.status,
+                    "materias": []
+                }
+                for m in c.materias:
+                    cargo_dict["materias"].append({
+                        "nome": m.nome,
+                        "topicos": [t.conteudo for t in m.topicos]
+                    })
+                edital_dict["cargos"].append(cargo_dict)
+            result.append(edital_dict)
+            
+        return result
+    finally:
+        db.close()
+
+@router.get("/stats")
+async def get_stats():
+    """Retorna estatísticas globais da Moenda Industrial."""
+    db = SessionLocal()
+    try:
+        total_editais = db.query(models.Edital).count()
+        total_cargos = db.query(models.Cargo).count()
+        total_materias = db.query(models.Materia).count()
+        return {
+            "total_editais": total_editais,
+            "total_cargos": total_cargos,
+            "total_materias": total_materias
+        }
+    finally:
+        db.close()

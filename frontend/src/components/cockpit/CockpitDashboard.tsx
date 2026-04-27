@@ -60,12 +60,44 @@ export default function CockpitDashboard() {
     });
   }, []);
 
+  // ── History loading ──────────────────────────────────────────────────
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        pushLog("Carregando histórico do banco de dados...", "INFO");
+        const res = await fetch("http://localhost:8000/api/v1/");
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              pushLog(`Histórico: ${data.length} editais encontrados. Populando grid...`, "SUCCESS");
+              const latest = data[0];
+              setEdital(latest);
+              if (latest.cargos) {
+                setCargos(latest.cargos);
+                if (latest.cargos.length > 0) {
+                  setSelectedCargo(latest.cargos[0]);
+                }
+              }
+            } else {
+              pushLog("Histórico vazio no banco de dados.", "WARNING");
+            }
+          } else {
+            const errText = await res.text();
+            pushLog(`Erro API: ${res.status} - ${errText.slice(0, 50)}`, "ERROR");
+          }
+      } catch (err) {
+        console.error("Erro ao carregar histórico:", err);
+      }
+    }
+    loadHistory();
+  }, [pushLog]);
+
   // ── SSE connection ──────────────────────────────────────────────────
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     function connect() {
-      const es = new EventSource("/api/v1/cockpit/stream");
+      const es = new EventSource("http://localhost:8000/api/v1/cockpit/stream");
       esRef.current = es;
 
       es.addEventListener("open", () => {
@@ -156,7 +188,7 @@ export default function CockpitDashboard() {
       form.append("file", file);
 
       try {
-        const res = await fetch("/api/v1/upload", {
+        const res = await fetch("http://localhost:8000/api/v1/upload", {
           method: "POST",
           body: form,
         });
