@@ -116,21 +116,34 @@ async def _process_edital_task(content_hash: str, temp_path: str):
 @router.post("/upload", response_model=IngestionResponse)
 async def upload_edital(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """Recebe o arquivo e inicia o processamento em segundo plano.
-    
-    Retorna imediatamente com status 'processando'.
+
+    Se o content_hash já existir no banco, retorna o edital existente imediatamente
+    sem reprocessar. Caso contrário, retorna status 'processando'.
     """
     file_bytes = await file.read()
     content_hash = _compute_hash(file_bytes)
-    
-    # Salvar temporariamente para o background task ler
+
+    db = SessionLocal()
+    try:
+        existing = db.query(models.Edital).filter_by(content_hash=content_hash).first()
+        if existing:
+            return IngestionResponse(
+                id=existing.id,
+                content_hash=existing.content_hash,
+                status=existing.status,
+                total_tables=0,
+                total_links=0,
+                total_chars=0,
+            )
+    finally:
+        db.close()
+
     temp_path = f"temp_{content_hash}_{uuid.uuid4().hex[:8]}.pdf"
     async with aiofiles.open(temp_path, "wb") as buffer:
         await buffer.write(file_bytes)
 
-    # Disparar tarefa em background
     background_tasks.add_task(_process_edital_task, content_hash, temp_path)
 
-    # Retorno imediato
     return IngestionResponse(
         id=uuid.uuid4(),
         content_hash=content_hash,
