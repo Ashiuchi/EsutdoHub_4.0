@@ -52,6 +52,28 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
 
+  moenda:
+    build: ./backend
+    command: python mass_ingestion_industrial.py
+    volumes:
+      - ./backend:/app
+      - K:\estudohub_storage:/storage_k
+      - ./storage:/app/storage
+    environment:
+      - DATABASE_URL=postgresql://estudohub_admin:estudohub_pass@db:5432/estudohub
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  pescador:
+    build:
+      context: ./backend/scripts
+      dockerfile: Dockerfile.pescador
+    volumes:
+      - K:\estudohub_storage:/storage_k
+      - ./storage:/app/storage
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   ollama_data:
