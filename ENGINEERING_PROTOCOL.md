@@ -34,6 +34,18 @@ Este documento define os papéis e responsabilidades na construção do projeto 
 
 ---
 
+## 🎨 Identidade Visual & Branding
+
+O EstudoHub Pro 4.0 segue uma paleta rigorosa baseada na logo oficial:
+1. **Cores Primárias**:
+    - `Teal Principal`: `#007F8E` (Acentos, botões, links).
+    - `Grafite Base`: `#2D2D2D` (Fundo de cards, sidebar).
+    - `Off-white`: `#E0E0E0` (Texto principal, ícones secundários).
+2. **Backgrounds**: Utilizar as imagens da pasta `/static/images` sempre com um **overlay de gradiente escuro** para garantir legibilidade (ex: `linear-gradient(to bottom, transparent, #030712)`).
+3. **Layout**: Priorizar navegação lateral (Sidebar) para aplicações de dashboard e rede social.
+
+---
+
 ## 🐳 Gerenciamento de Ambiente
 
 Para garantir a consistência entre desenvolvimento e DevOps, o ambiente é gerenciado de forma unificada:

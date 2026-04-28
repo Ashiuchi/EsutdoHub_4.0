@@ -1,0 +1,36 @@
+<svg width="600" height="600" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- FUNDO: Cinza Grafite Suave -->
+  <rect width="600" height="600" fill="#2D2D2D" />
+  
+  <!-- Grupo do Ícone Centralizado -->
+  <g transform="translate(300, 240)">
+    <!-- LADO ESQUERDO: Metade Escudo -->
+    <path d="M 0,-100 L -70,-100 L -70,-20 C -70,50 -40,100 0,130 Z" fill="#B0B0B0" />
+    
+    <!-- LADO DIREITO: Metade Caneta Tinteiro -->
+    <path d="M 0,-100 L 70,-100 L 70,-20 C 70,30 40,80 0,130 Z" fill="#B0B0B0" />
+    
+    <!-- DETALHE: Fenda Central -->
+    <rect x="-1.5" y="-100" width="3" height="180" fill="#007F8E" fill-opacity="0.9" />
+    
+    <!-- DETALHE: Furo de Respiro -->
+    <circle cx="0" cy="-30" r="8" fill="#2D2D2D" />
+    <circle cx="0" cy="-30" r="5" fill="#007F8E" />
+
+    <!-- BRILHO SUTIL -->
+    <path d="M -70,-100 L 0,-100 L 0,130 C -20,115 -70,50 -70,-20 Z" fill="#FFFFFF" fill-opacity="0.08" />
+  </g>
+  
+  <!-- TEXTO PRINCIPAL -->
+  <text x="300" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="52" fill="#E0E0E0" letter-spacing="-1">
+    Estuda<tspan fill="#007F8E" stroke="#FFFFFF" stroke-width="1" paint-order="stroke">Hub</tspan>
+  </text>
+  
+  <!-- TAGLINE BACKGROUND (Usando a cor do Estuda #E0E0E0) -->
+  <rect x="80" y="468" width="440" height="22" rx="4" fill="#E0E0E0" />
+  
+  <!-- TAGLINE -->
+  <text x="300" y="484" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="11" fill="#007F8E" letter-spacing="3">
+    INTELIGÊNCIA ESTRATÉGICA PARA CONCURSOS
+  </text>
+</svg>

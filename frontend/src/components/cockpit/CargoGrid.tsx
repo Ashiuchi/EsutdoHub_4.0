@@ -9,9 +9,10 @@ import CargoModal from "./CargoModal";
 interface Props {
   cargos: Cargo[];
   onCargoClick?: (cargo: Cargo) => void;
+  fingerprint?: string;
 }
 
-export default function CargoGrid({ cargos, onCargoClick }: Props) {
+export default function CargoGrid({ cargos, onCargoClick, fingerprint }: Props) {
   const [selectedCargo, setSelectedCargo] = useState<Cargo | null>(null);
 
   const handleCardClick = (cargo: Cargo) => {
@@ -71,6 +72,7 @@ export default function CargoGrid({ cargos, onCargoClick }: Props) {
                   key={`${cargo.titulo}-${idx}`}
                   cargo={cargo}
                   onClick={handleCardClick}
+                  fingerprint={fingerprint}
                 />
               ))
             )}

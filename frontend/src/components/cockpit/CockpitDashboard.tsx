@@ -294,7 +294,7 @@ export default function CockpitDashboard() {
             </div>
           </div>
 
-          <CargoGrid cargos={cargos} onCargoClick={setSelectedCargo} />
+          <CargoGrid cargos={cargos} onCargoClick={setSelectedCargo} fingerprint={edital.fingerprint} />
         </aside>
 
         {/* Right panel — Terminal (fixed width) */}

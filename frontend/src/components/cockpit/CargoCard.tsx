@@ -6,9 +6,10 @@ import type { Cargo } from "@/types/edital";
 interface Props {
   cargo: Cargo;
   onClick: (cargo: Cargo) => void;
+  fingerprint?: string;
 }
 
-export default function CargoCard({ cargo, onClick }: Props) {
+export default function CargoCard({ cargo, onClick, fingerprint }: Props) {
   const totalMaterias = cargo.materias?.length || 0;
   const totalTopicos = cargo.materias?.reduce((a, m) => a + (m.topicos?.length || 0), 0) || 0;
 
@@ -64,6 +65,11 @@ export default function CargoCard({ cargo, onClick }: Props) {
                <div className="w-1 h-1 rounded-full bg-green-500/60" />
                <div className="w-1 h-1 rounded-full bg-green-500/30" />
             </div>
+          )}
+          {fingerprint && (
+            <span className="text-[9px] font-mono text-green-500/40 tracking-tight">
+              #{fingerprint.slice(0, 8)}
+            </span>
           )}
         </div>
       </div>

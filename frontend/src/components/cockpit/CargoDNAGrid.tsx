@@ -43,6 +43,7 @@ export default function CargoDNAGrid({ cargo, edital }: Props) {
     { label: "Banca", value: (edital.banca && edital.banca !== "Detectando...") ? edital.banca : null, cat: "Meta" },
     { label: "Cód. Edital", value: cargo.codigo_edital || null, cat: "Meta" },
     { label: "Status", value: cargo.status, cat: "Meta" },
+    { label: "DNA Fingerprint", value: edital.fingerprint ? edital.fingerprint.slice(0, 16) : null, cat: "Meta", highlight: true },
     { label: "Matérias", value: cargo.materias?.length ? cargo.materias.length : null, cat: "Conteúdo" },
     { label: "Tópicos", value: (cargo.materias || []).reduce((a, m) => a + (m.topicos?.length || 0), 0) || null, cat: "Conteúdo" },
   ];

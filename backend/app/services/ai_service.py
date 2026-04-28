@@ -134,7 +134,7 @@ class AIService:
         # Persistência no Banco de Dados
         edital_db_id = await self._create_edital_db(vitamin_data.edital_info)
         if edital_db_id:
-            await self._persist_and_broadcast(edital_db_id, cargos_com_materias, set())
+            await self._persist_and_broadcast(edital_db_id, cargos_com_materias, set(), cargo_contexts=cargo_contexts)
 
         return {"edital": vitamin_data.edital_info, "cargos": cargos_com_materias, "id": edital_db_id}
 
@@ -307,18 +307,25 @@ class AIService:
             db.close()
 
     @staticmethod
-    def _persist_cargos_sync(edital_db_id: int, cargos: List[Cargo], known_titulos: Set[str]) -> List[dict]:
+    def _persist_cargos_sync(
+        edital_db_id: int,
+        cargos: List[Cargo],
+        known_titulos: Set[str],
+        cargo_contexts: Optional[dict] = None,
+    ) -> List[dict]:
         saved: List[dict] = []
         db = SessionLocal()
         try:
             for cargo_schema in cargos:
                 if cargo_schema.titulo in known_titulos:
                     continue
+                anchor = (cargo_contexts or {}).get(cargo_schema.titulo)
                 cargo_db = db_models.Cargo(
                     edital_id=edital_db_id,
                     titulo=cargo_schema.titulo,
                     salario=cargo_schema.salario,
                     requisitos=cargo_schema.requisitos,
+                    anchor_text=anchor,
                     status="extraido",
                     price=0.0,
                 )
@@ -343,8 +350,14 @@ class AIService:
     async def _create_edital_db(self, result: EditalGeral) -> Optional[int]:
         return await asyncio.to_thread(self._create_edital_sync, result)
 
-    async def _persist_and_broadcast(self, edital_db_id: int, cargos: List[Cargo], known_titulos: Set[str]) -> None:
-        saved = await asyncio.to_thread(self._persist_cargos_sync, edital_db_id, cargos, known_titulos)
+    async def _persist_and_broadcast(
+        self,
+        edital_db_id: int,
+        cargos: List[Cargo],
+        known_titulos: Set[str],
+        cargo_contexts: Optional[dict] = None,
+    ) -> None:
+        saved = await asyncio.to_thread(self._persist_cargos_sync, edital_db_id, cargos, known_titulos, cargo_contexts)
         for cargo_dict in saved:
             logger.info("Cargo '%s' extraído e salvo!", cargo_dict["titulo"])
             log_streamer.broadcast({"type": "data", "payload": cargo_dict})

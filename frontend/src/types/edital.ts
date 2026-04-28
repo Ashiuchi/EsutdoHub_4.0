@@ -41,6 +41,8 @@ export interface Edital {
   data_prova: string;
   link_edital?: string;
   status: string;
+  fingerprint?: string;
+  content_hash?: string;
   cargos: Cargo[];
 }
 

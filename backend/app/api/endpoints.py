@@ -219,6 +219,8 @@ async def list_editais():
                 "inscription_end": e.inscription_end,
                 "data_prova": e.data_prova,
                 "status": e.status,
+                "fingerprint": e.fingerprint,
+                "content_hash": e.content_hash,
                 "cargos": []
             }
             for c in e.cargos:
@@ -228,6 +230,7 @@ async def list_editais():
                     "escolaridade": c.escolaridade,
                     "vagas_total": c.vagas_total,
                     "status": c.status,
+                    "anchor_text": c.anchor_text,
                     "materias": []
                 }
                 for m in c.materias:

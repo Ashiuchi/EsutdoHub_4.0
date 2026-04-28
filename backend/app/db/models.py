@@ -61,6 +61,8 @@ class Cargo(Base):
     lotation_cities = Column(Text, nullable=True)
     jornada = Column(String(100), nullable=True)
     
+    anchor_text = Column(Text, nullable=True)
+
     status = Column(String(50), nullable=False, default="identificado")
     price = Column(Float, nullable=False, default=0.0)
 
