@@ -46,9 +46,21 @@ O EstudoHub Pro 4.0 segue uma paleta rigorosa baseada na logo oficial:
 
 ---
 
-## 🐳 Gerenciamento de Ambiente
+## 🐳 Gerenciamento de Ambiente & Docker
 
-Para garantir a consistência entre desenvolvimento e DevOps, o ambiente é gerenciado de forma unificada:
+Para garantir a consistência entre diferentes locais de trabalho, utilizamos uma estratégia de múltiplos arquivos Compose:
+
+1. **`docker-compose.yml` (Padrão/Home)**:
+    - Destinado ao ambiente principal com hardware completo.
+    - Requisitos: Drive `K:\` mapeado e GPU NVIDIA disponível para o Ollama.
+2. **`docker-compose.dev.yml` (Local/Portátil)**:
+    - Destinado a máquinas de desenvolvimento sem hardware específico.
+    - Ajustes: Mapeia `/storage_k` para uma pasta local (`./storage_k`) e desativa a exigência de GPU (roda Ollama via CPU).
+
+**Comando para subir no ambiente Local**:
+`docker-compose -f docker-compose.dev.yml up -d`
+
+---
 
 1. **Stack Unificado**: O arquivo `docker-compose.all.yml` é a fonte da verdade, unindo a App (Backend, Frontend, DB, Redis, Ollama) com as ferramentas de suporte (Jenkins, SonarQube, Vault).
 2. **Entry Point**: O `Makefile` na raiz do projeto deve ser utilizado para todas as operações de infraestrutura.
