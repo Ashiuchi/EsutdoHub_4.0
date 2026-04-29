@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     openrouter_api_key: Optional[str] = None
     nvidia_api_key: Optional[str] = None
 
+    # Clerk Auth — loaded from Vault first, then env
+    clerk_secret_key: Optional[str] = None     # sk_test_... (Clerk Backend API)
+    clerk_jwt_issuer: Optional[str] = None     # https://<instance>.clerk.accounts.dev
+
+    # Comma-separated Clerk user IDs treated as admins in dev (no Clerk dashboard required)
+    admin_user_ids: str = ""
+
     database_url: str = "sqlite:///./dev.db"
     debug: bool = False
     use_local_llm: bool = True
@@ -52,6 +59,10 @@ class Settings(BaseSettings):
                         self.nvidia_api_key = vault_secrets["NVIDIA_API_KEY"]
                     if "DATABASE_URL" in vault_secrets:
                         self.database_url = vault_secrets["DATABASE_URL"]
+                    if "CLERK_SECRET_KEY" in vault_secrets:
+                        self.clerk_secret_key = vault_secrets["CLERK_SECRET_KEY"]
+                    if "CLERK_JWT_ISSUER" in vault_secrets:
+                        self.clerk_jwt_issuer = vault_secrets["CLERK_JWT_ISSUER"]
                     
                     print(f"Successfully loaded secrets from Vault at {self.vault_addr}")
                 else:

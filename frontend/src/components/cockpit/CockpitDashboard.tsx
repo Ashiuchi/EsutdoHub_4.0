@@ -225,15 +225,15 @@ export default function CockpitDashboard() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
+    <div className="flex flex-col h-screen bg-[var(--background)] text-[var(--text-offwhite)] overflow-hidden">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-zinc-800 shrink-0">
+      <header className="flex items-center justify-between px-6 py-3 border-b border-[var(--nav-border)] shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-green-400 font-mono text-sm terminal-glow">▶</span>
-          <h1 className="font-semibold text-zinc-100 tracking-tight">
+          <span className="text-[var(--primary-teal)] font-mono text-sm terminal-glow">▶</span>
+          <h1 className="font-semibold text-[var(--text-offwhite)] tracking-tight">
             EstudoHub Pro{" "}
-            <span className="text-zinc-500 font-normal">4.0</span>
-            <span className="ml-2 text-zinc-400 font-normal">/ Cockpit</span>
+            <span className="text-[var(--text-offwhite)]/40 font-normal">4.0</span>
+            <span className="ml-2 text-[var(--text-offwhite)]/20 font-normal">/ Cockpit</span>
           </h1>
         </div>
 
@@ -241,13 +241,13 @@ export default function CockpitDashboard() {
           <span
             className={`h-2 w-2 rounded-full ${
               connStatus === "connected"
-                ? "bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]"
+                ? "bg-[var(--primary-teal)] shadow-[0_0_6px_var(--primary-teal)]"
                 : connStatus === "connecting"
                 ? "bg-yellow-400 animate-pulse"
                 : "bg-red-500"
             }`}
           />
-          <span className="text-xs text-zinc-500 font-mono">
+          <span className="text-xs text-[var(--text-offwhite)]/40 font-mono">
             {connStatus === "connected"
               ? "SSE LIVE"
               : connStatus === "connecting"
@@ -260,7 +260,7 @@ export default function CockpitDashboard() {
       {/* ── Body grid ──────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — Grid (larger, grows) */}
-        <aside className="flex flex-col flex-1 border-r border-zinc-800 overflow-hidden">
+        <aside className="flex flex-col flex-1 border-r border-[var(--nav-border)] overflow-hidden">
           <UploadPanel
             status={procStatus}
             currentFile={currentFile}
@@ -268,26 +268,26 @@ export default function CockpitDashboard() {
           />
           
           {/* Metadata Header (DNA 26) */}
-          <div className="px-6 py-4 bg-zinc-900/30 border-b border-zinc-800 flex items-center justify-between">
+          <div className="px-6 py-4 bg-[var(--bg-graphite)]/30 border-b border-[var(--nav-border)] flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Órgão</span>
-                <span className="text-sm font-semibold text-zinc-200">{edital.orgao}</span>
+                <span className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest">Órgão</span>
+                <span className="text-sm font-semibold text-[var(--text-offwhite)]/80">{edital.orgao}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Banca</span>
-                <span className="text-sm text-zinc-400">{edital.banca}</span>
+                <span className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest">Banca</span>
+                <span className="text-sm text-[var(--text-offwhite)]/60">{edital.banca}</span>
               </div>
             </div>
             
             <div className="text-right space-y-1">
               <div className="flex items-center justify-end gap-2">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Prova</span>
-                <span className="text-sm font-mono text-green-400">{edital.data_prova || "Pendente"}</span>
+                <span className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest">Prova</span>
+                <span className="text-sm font-mono text-[var(--primary-teal)]">{edital.data_prova || "Pendente"}</span>
               </div>
               <div className="flex items-center justify-end gap-2">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Inscrições</span>
-                <span className="text-xs text-zinc-500">
+                <span className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest">Inscrições</span>
+                <span className="text-xs text-[var(--text-offwhite)]/40">
                   {edital.inscription_start} — {edital.inscription_end}
                 </span>
               </div>
@@ -298,15 +298,15 @@ export default function CockpitDashboard() {
         </aside>
 
         {/* Right panel — Terminal (fixed width) */}
-        <main className="flex flex-col w-[380px] shrink-0 border-l border-zinc-800 overflow-hidden">
+        <main className="flex flex-col w-[380px] shrink-0 border-l border-[var(--nav-border)] overflow-hidden">
           {/* DNA Monitor (DNA 26 Live) */}
-          <div className="p-4 bg-zinc-900 border-b border-zinc-800 shrink-0">
+          <div className="p-4 bg-[var(--bg-graphite)]/50 border-b border-[var(--nav-border)] shrink-0">
              <div className="flex items-center justify-between mb-3">
-               <h3 className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                  <span className="text-green-500 animate-pulse">🧬</span> DNA 26 Monitor
+               <h3 className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest flex items-center gap-2">
+                  <span className="text-[var(--primary-teal)] animate-pulse">🧬</span> DNA 26 Monitor
                </h3>
                {selectedCargo && (
-                 <span className="text-[10px] font-mono text-green-500/70 truncate max-w-[180px]">
+                 <span className="text-[10px] font-mono text-[var(--primary-teal)]/70 truncate max-w-[180px]">
                    {selectedCargo.titulo}
                  </span>
                )}
@@ -315,8 +315,8 @@ export default function CockpitDashboard() {
              {selectedCargo ? (
                <CargoDNAGrid cargo={selectedCargo} edital={edital} />
              ) : (
-               <div className="h-24 flex items-center justify-center border border-dashed border-zinc-800 rounded-lg">
-                 <p className="text-[10px] text-zinc-600 font-mono italic text-center px-4">
+               <div className="h-24 flex items-center justify-center border border-dashed border-[var(--nav-border)] rounded-lg">
+                 <p className="text-[10px] text-[var(--text-offwhite)]/20 font-mono italic text-center px-4">
                    Selecione um cargo para monitorar o DNA
                  </p>
                </div>
@@ -324,22 +324,22 @@ export default function CockpitDashboard() {
           </div>
 
           {/* Discovery Monitor Overlay (Minimalist) */}
-          <div className="p-3 bg-green-500/5 border-b border-zinc-800">
-             <h3 className="text-[10px] font-mono text-green-500/70 uppercase tracking-widest mb-2 flex items-center gap-2">
+          <div className="p-3 bg-[var(--primary-teal)]/5 border-b border-[var(--nav-border)]">
+             <h3 className="text-[10px] font-mono text-[var(--primary-teal)]/70 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--primary-teal)] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--primary-teal)]"></span>
                 </span>
                 Discovery Monitor
              </h3>
              <div className="space-y-1 max-h-24 overflow-y-auto scrollbar-hide">
                 {logs.filter(l => l.message.includes("📌") || l.message.includes("✅")).slice(-3).reverse().map(log => (
-                  <div key={log.id} className="text-[10px] font-mono text-zinc-400 border-l border-green-500/30 pl-2 animate-in fade-in slide-in-from-left-1">
+                  <div key={log.id} className="text-[10px] font-mono text-[var(--text-offwhite)]/40 border-l border-[var(--primary-teal)]/30 pl-2 animate-in fade-in slide-in-from-left-1">
                     {log.message}
                   </div>
                 ))}
                 {logs.filter(l => l.message.includes("📌") || l.message.includes("✅")).length === 0 && (
-                  <div className="text-[10px] font-mono text-zinc-600 italic">
+                  <div className="text-[10px] font-mono text-[var(--text-offwhite)]/20 italic">
                     Aguardando descobertas da IA...
                   </div>
                 )}

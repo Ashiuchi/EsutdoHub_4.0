@@ -1,5 +1,6 @@
 import { Users, TrendingUp } from "lucide-react";
 import SocialFeed from "@/components/social/SocialFeed";
+import ThemeBackground from "@/components/ThemeBackground";
 
 const GRUPOS = [
   { name: "Concursos Federais", members: "2,4k membros" },
@@ -18,15 +19,8 @@ const EDITAIS = [
 export default function Home() {
   return (
     <div className="relative min-h-screen">
-      {/* Fixed background image */}
-      <div
-        className="fixed inset-0 -z-20 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/static/images/Background06.jpg')" }}
-      />
-      {/* Hero gradient: dark-to-transparent from the top */}
-      <div className="fixed inset-0 -z-10 hero-gradient" />
-      {/* Uniform dark veil for readability */}
-      <div className="fixed inset-0 -z-10 bg-[#030712]/65" />
+      {/* Theme-aware background: dark → Background01.jpg / light → Background08.jpg */}
+      <ThemeBackground />
 
       {/* Page layout */}
       <div className="flex gap-6 p-6 max-w-[1100px] mx-auto">

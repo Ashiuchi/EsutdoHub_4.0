@@ -161,7 +161,16 @@
       "Bash(/mnt/c/Dev/EstudoHub_4.0/.venv_pescador/bin/pip list *)",
       "Bash(/mnt/c/Dev/EstudoHub_4.0/venv/bin/python *)",
       "Bash(docker exec *)",
-      "Bash(echo \"PID: $!\")"
+      "Bash(echo \"PID: $!\")",
+      "Bash(node -e \"const m = require\\('@clerk/nextjs/server'\\); console.log\\(Object.keys\\(m\\).filter\\(k => k.toLowerCase\\(\\).includes\\('middle'\\) || k.toLowerCase\\(\\).includes\\('auth'\\)\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const m = require\\('@clerk/nextjs/server'\\); console.log\\(Object.keys\\(m\\).filter\\(k => k.toLowerCase\\(\\).includes\\('route'\\) || k.toLowerCase\\(\\).includes\\('matcher'\\) || k.toLowerCase\\(\\).includes\\('protect'\\)\\)\\)\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(tasklist *)",
+      "PowerShell(Get-Process *)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(p.dependencies['next-themes']\\)\")"
     ]
   }
 }

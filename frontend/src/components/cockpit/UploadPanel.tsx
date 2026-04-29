@@ -11,9 +11,9 @@ interface Props {
 }
 
 const STATUS_CONFIG = {
-  idle:       { label: "Aguardando edital",  color: "text-zinc-500",  dot: "bg-zinc-600"   },
+  idle:       { label: "Aguardando edital",  color: "text-[var(--text-offwhite)]/40",  dot: "bg-[var(--text-offwhite)]/20"   },
   processing: { label: "Processando...",      color: "text-yellow-400", dot: "bg-yellow-400 animate-pulse" },
-  done:       { label: "Extração concluída",  color: "text-green-400",  dot: "bg-green-400"  },
+  done:       { label: "Extração concluída",  color: "text-[var(--primary-teal)]",  dot: "bg-[var(--primary-teal)]"  },
   error:      { label: "Erro na extração",    color: "text-red-400",    dot: "bg-red-500"    },
 } as const;
 
@@ -41,8 +41,8 @@ export default function UploadPanel({ status, currentFile, onUpload }: Props) {
   const isProcessing = status === "processing";
 
   return (
-    <div className="p-4 border-b border-zinc-800 shrink-0 space-y-3">
-      <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+    <div className="p-4 border-b border-[var(--nav-border)] shrink-0 space-y-3">
+      <p className="text-xs font-semibold text-[var(--text-offwhite)]/40 uppercase tracking-widest">
         Upload
       </p>
 
@@ -54,17 +54,20 @@ export default function UploadPanel({ status, currentFile, onUpload }: Props) {
         onDrop={onDrop}
         animate={{
           borderColor: dragging
-            ? "rgba(74,222,128,0.6)"
+            ? "var(--primary-teal)"
             : isProcessing
             ? "rgba(234,179,8,0.4)"
-            : "rgba(63,63,70,0.8)",
+            : "var(--nav-border)",
           boxShadow: dragging
-            ? "0 0 20px rgba(74,222,128,0.15)"
+            ? "0 0 20px rgba(0,127,142,0.15)"
             : "none",
+          backgroundColor: dragging
+            ? "var(--primary-teal)/5"
+            : "transparent",
         }}
         transition={{ duration: 0.2 }}
         className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 cursor-pointer select-none
-          ${isProcessing ? "cursor-not-allowed opacity-70" : "hover:border-zinc-500 hover:bg-zinc-900/50"}
+          ${isProcessing ? "cursor-not-allowed opacity-70" : "hover:border-[var(--primary-teal)]/50 hover:bg-[var(--primary-teal)]/5"}
         `}
       >
         <AnimatePresence mode="wait">
@@ -98,14 +101,14 @@ export default function UploadPanel({ status, currentFile, onUpload }: Props) {
               className="flex flex-col items-center gap-2"
             >
               <svg
-                className={`h-7 w-7 transition-colors ${dragging ? "text-green-400" : "text-zinc-500"}`}
+                className={`h-7 w-7 transition-colors ${dragging ? "text-[var(--primary-teal)]" : "text-[var(--text-offwhite)]/20"}`}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
               >
                 <path strokeLinecap="round" strokeLinejoin="round"
                   d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
                 />
               </svg>
-              <span className={`text-xs font-mono transition-colors ${dragging ? "text-green-400" : "text-zinc-500"}`}>
+              <span className={`text-xs font-mono transition-colors ${dragging ? "text-[var(--primary-teal)]" : "text-[var(--text-offwhite)]/20"}`}>
                 {dragging ? "Solte aqui" : "Drop PDF ou clique"}
               </span>
             </motion.div>

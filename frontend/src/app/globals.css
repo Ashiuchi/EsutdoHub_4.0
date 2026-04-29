@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* ── Root element: lock in dark background before any JS runs ──────
+   Without this the browser paints the <html> / overscroll area white
+   and form inputs / scrollbars use the browser's light-mode defaults. */
+html {
+  background-color: #030712;   /* matches --background dark default */
+  color-scheme: dark;          /* scrollbars, inputs, autofill → dark */
+}
+
+html.light {
+  background-color: #f8fafc;   /* matches --background light */
+  color-scheme: light;
+}
+
+/* ── CSS Variables — dark mode (default) ─────────────────────────── */
 :root {
   --background: #030712;
   --foreground: #E0E0E0;
@@ -8,6 +22,37 @@
   --primary-teal: #007F8E;
   --bg-graphite: #2D2D2D;
   --text-offwhite: #E0E0E0;
+
+  /* Glass / sidebar */
+  --glass-bg: rgba(45, 45, 45, 0.45);
+  --glass-border-color: rgba(224, 224, 224, 0.08);
+  --nav-border: rgba(224, 224, 224, 0.06);
+  --nav-hover-bg: rgba(255, 255, 255, 0.06);
+
+  /* Clerk overrides */
+  --clerk-bg: #1c1c1c;
+  --clerk-text: #ffffff;
+  --clerk-input-bg: #27272a;
+  --clerk-border: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Light mode overrides ────────────────────────────────────────── */
+html.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --bg-graphite: #f1f5f9;
+  --text-offwhite: #0f172a;
+  /* primary-teal stays #007F8E — brand recognition */
+
+  --glass-bg: rgba(248, 250, 252, 0.88);
+  --glass-border-color: rgba(15, 23, 42, 0.10);
+  --nav-border: rgba(15, 23, 42, 0.10);
+  --nav-hover-bg: rgba(0, 0, 0, 0.05);
+
+  --clerk-bg: #f1f5f9;
+  --clerk-text: #0f172a;
+  --clerk-input-bg: #e2e8f0;
+  --clerk-border: rgba(15, 23, 42, 0.12);
 }
 
 @theme inline {
@@ -30,14 +75,15 @@ body {
 .glass {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: rgba(45, 45, 45, 0.45);
-  border: 1px solid rgba(224, 224, 224, 0.08);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border-color);
 }
 
+/* Gradient veil: tinted from the page background colour */
 .hero-gradient {
   background: linear-gradient(
     to bottom,
-    #030712 0%,
+    var(--background) 0%,
     transparent 100%
   );
 }

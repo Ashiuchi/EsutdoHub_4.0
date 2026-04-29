@@ -37,18 +37,18 @@ export default function HackerTerminal({ logs, connStatus }: Props) {
   }, [logs]);
 
   return (
-    <div className="flex flex-col h-full bg-black relative terminal-scanline terminal-crt">
+    <div className="flex flex-col h-full bg-[var(--background)] relative terminal-scanline terminal-crt">
       {/* Terminal topbar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-zinc-950/80 shrink-0 z-10">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--nav-border)] bg-[var(--background)]/80 backdrop-blur-sm shrink-0 z-10">
         <span className="h-3 w-3 rounded-full bg-red-500/80" />
         <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
         <span className="h-3 w-3 rounded-full bg-green-500/80" />
-        <span className="ml-3 text-xs text-zinc-500 font-mono">
+        <span className="ml-3 text-xs text-[var(--text-offwhite)]/40 font-mono">
           cockpit@estudohub — stream
         </span>
         <span
           className={`ml-auto text-xs font-mono ${
-            connStatus === "connected" ? "text-green-400 terminal-glow" : "text-zinc-600"
+            connStatus === "connected" ? "text-green-400 terminal-glow" : "text-[var(--text-offwhite)]/20"
           }`}
         >
           {connStatus === "connected" ? "● LIVE" : "○ OFFLINE"}
@@ -59,7 +59,7 @@ export default function HackerTerminal({ logs, connStatus }: Props) {
       <div className="flex-1 overflow-y-auto p-4 font-mono text-sm space-y-0.5 relative z-10 scrollbar-thin">
         {logs.map((line) => (
           <div key={line.id} className="flex gap-2 leading-5">
-            <span className="text-zinc-600 shrink-0 select-none" suppressHydrationWarning>{line.ts}</span>
+            <span className="text-[var(--text-offwhite)]/20 shrink-0 select-none" suppressHydrationWarning>{line.ts}</span>
             <span
               className={`shrink-0 select-none font-semibold ${
                 LEVEL_COLOR[line.level] ?? "text-green-400"
@@ -83,7 +83,7 @@ export default function HackerTerminal({ logs, connStatus }: Props) {
 
         {/* Blinking cursor at bottom */}
         <div className="flex gap-2 leading-5 mt-1">
-          <span className="text-zinc-600 select-none" suppressHydrationWarning>
+          <span className="text-[var(--text-offwhite)]/20 select-none" suppressHydrationWarning>
             {mounted ? new Date().toLocaleTimeString("pt-BR", { hour12: false }) : ""}
           </span>
           <span className="text-green-400 terminal-glow">

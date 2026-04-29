@@ -49,27 +49,27 @@ export default function CargoDNAGrid({ cargo, edital }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1 p-1 bg-zinc-900/50 rounded-lg border border-zinc-800">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1 p-1 bg-[var(--background)]/50 rounded-lg border border-[var(--nav-border)]">
       {fields.map((f, i) => (
         <motion.div
           key={i}
           layout
           className={`p-1.5 rounded flex flex-col gap-0.5 border ${
             f.value 
-              ? "bg-green-500/5 border-green-500/20" 
-              : "bg-zinc-800/20 border-zinc-800/50 opacity-40"
+              ? "bg-[var(--primary-teal)]/5 border-[var(--primary-teal)]/20" 
+              : "bg-[var(--bg-graphite)]/20 border-[var(--nav-border)]/50 opacity-40"
           }`}
         >
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase truncate">
+            <span className="text-[9px] font-mono text-[var(--text-offwhite)]/40 uppercase truncate">
               {f.label}
             </span>
             {f.value && (
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary-teal)] shadow-[0_0_4px_var(--primary-teal)]" />
             )}
           </div>
           <span className={`text-[10px] font-mono truncate ${
-            f.value ? (f.highlight ? "text-green-400 font-bold" : "text-zinc-200") : "text-zinc-600"
+            f.value ? (f.highlight ? "text-[var(--primary-teal)] font-bold" : "text-[var(--text-offwhite)]") : "text-[var(--text-offwhite)]/20"
           }`}>
             {f.value || "---"}
           </span>

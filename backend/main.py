@@ -10,10 +10,11 @@ setup_streaming_handler()
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.endpoints import router as api_router
+from app.core.auth import verify_clerk_token
 from app.core.config import settings
 from app.db.database import Base, engine
 import app.db.models  # noqa: F401 — ensures all models are registered before create_all
@@ -50,6 +51,16 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict:
     return {"status": "healthy", "service": "backend"}
+
+
+@app.get("/api/v1/me", tags=["Auth"])
+async def me(payload: dict = Depends(verify_clerk_token)) -> dict:
+    """Retorna o perfil do usuário autenticado via JWT do Clerk."""
+    return {
+        "user_id": payload.get("sub"),
+        "email": payload.get("email"),
+        "session_id": payload.get("sid"),
+    }
 
 
 if __name__ == "__main__":

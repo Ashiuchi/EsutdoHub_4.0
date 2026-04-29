@@ -24,8 +24,8 @@ export default function CargoGrid({ cargos, onCargoClick, fingerprint }: Props) 
     <>
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Section header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800 shrink-0">
-          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--nav-border)] shrink-0">
+          <p className="text-xs font-semibold text-[var(--text-offwhite)]/40 uppercase tracking-widest">
             Cargos Extraídos
           </p>
           <AnimatePresence>
@@ -35,7 +35,7 @@ export default function CargoGrid({ cargos, onCargoClick, fingerprint }: Props) 
                 initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.7 }}
-                className="text-xs font-mono text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-0.5 rounded-full"
+                className="text-xs font-mono text-[var(--primary-teal)] bg-[var(--primary-teal)]/10 border border-[var(--primary-teal)]/20 px-2 py-0.5 rounded-full"
               >
                 {cargos.length}
               </motion.span>
@@ -55,14 +55,14 @@ export default function CargoGrid({ cargos, onCargoClick, fingerprint }: Props) 
                 className="flex flex-col items-center justify-center h-32 gap-2 text-center"
               >
                 <svg
-                  className="h-8 w-8 text-zinc-800"
+                  className="h-8 w-8 text-[var(--text-offwhite)]/10"
                   fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <p className="text-xs text-zinc-700 font-mono">
+                <p className="text-xs text-[var(--text-offwhite)]/20 font-mono">
                   Nenhum cargo extraído ainda
                 </p>
               </motion.div>
