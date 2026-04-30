@@ -14,6 +14,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.endpoints import router as api_router
+from app.api.library_endpoints import router as library_router
 from app.core.auth import verify_clerk_token
 from app.core.config import settings
 from app.db.database import Base, engine
@@ -46,6 +47,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(library_router, prefix="/api/v1/biblioteca", tags=["Biblioteca"])
 
 
 @app.get("/health", tags=["Health"])

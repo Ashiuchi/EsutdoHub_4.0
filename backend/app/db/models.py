@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, Float, Text, ForeignKey, DateTime
+from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -93,3 +93,64 @@ class Topico(Base):
     conteudo = Column(Text, nullable=False)
 
     materia = relationship("Materia", back_populates="topicos")
+
+
+class Documento(Base):
+    """Representa um arquivo da biblioteca do usuário (Livros, Resumos, Apostilas)."""
+
+    __tablename__ = "documentos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    user_id = Column(String(255), nullable=False, index=True)
+    filename = Column(String(255), nullable=False)
+    file_path = Column(Text, nullable=False)
+    content_hash = Column(String(64), nullable=True, unique=True)
+    status = Column(String(50), default="processando")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    topicos_atomicos = relationship("TopicoAtomico", back_populates="documento", cascade="all, delete-orphan")
+
+
+class TopicoAtomico(Base):
+    """Conteúdo extraído e classificado por IA, pronto para ser cruzado com editais."""
+
+    __tablename__ = "topicos_atomicos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    documento_id = Column(UUID(as_uuid=True), ForeignKey("documentos.id", ondelete="CASCADE"), nullable=False)
+    
+    # Taxonomia
+    materia = Column(String(100), nullable=False, index=True) # Ex: Português
+    topico = Column(String(100), nullable=False, index=True)  # Ex: Crase
+    
+    # Conteúdo
+    original_text = Column(Text, nullable=False)
+    ai_summary = Column(Text, nullable=True) # O "O que é este trecho?" gerado pela IA
+    flashcards = Column(Text, nullable=True) # JSON contendo Q&A
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    documento = relationship("Documento", back_populates="topicos_atomicos")
+
+
+class BibliotecaItem(Base):
+    """Material de estudo pessoal enviado por um usuário.
+
+    O file_path nunca é exposto na API — apenas metadados e o texto extraído
+    ficam acessíveis, garantindo que o PDF original não vaze para outros usuários.
+    """
+
+    __tablename__ = "biblioteca_items"
+    __table_args__ = (
+        UniqueConstraint("user_id", "content_hash", name="uq_biblioteca_user_hash"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    user_id = Column(String(255), nullable=False, index=True)   # Clerk user ID
+    filename = Column(String(500), nullable=False)              # display only
+    file_size = Column(Integer, nullable=False)                 # bytes
+    content_hash = Column(String(64), nullable=False)           # SHA-256
+    file_path = Column(String(1000), nullable=False)            # internal — never in API response
+    status = Column(String(50), nullable=False, default="processando")  # processando | concluido | erro
+    page_count = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
