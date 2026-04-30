@@ -49,7 +49,7 @@ export default function CargoDNAGrid({ cargo, edital }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1 p-1 bg-[var(--background)]/50 rounded-lg border border-[var(--nav-border)]">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1 p-1 glass rounded-lg">
       {fields.map((f, i) => (
         <motion.div
           key={i}

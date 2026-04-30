@@ -22,6 +22,13 @@ Este documento define os papéis e responsabilidades na construção do projeto 
 
 ---
 
+## 🧭 Visão Estratégica
+
+Toda a engenharia deste projeto deve estar alinhada com os pilares de negócio e a visão social definidos no documento mestre de brainstorm:
+- **[ESTUDOHUB_VISION_BRAINSTORM.md](file:///C:/Users/alessandro.morais/.gemini/antigravity/brain/43761501-43f6-40a0-9338-41f100662b37/ESTUDOHUB_VISION_BRAINSTORM.md)**: Contém o modelo de monetização, a estratégia de rede social ("Vício Positivo") e a arquitetura de inteligência artificial da plataforma.
+
+---
+
 ## 🛠️ Workflow de Trabalho
 
 1. **Planejamento**: Antigravity pesquisa e cria um `implementation_plan.md`.

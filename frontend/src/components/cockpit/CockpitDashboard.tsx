@@ -225,15 +225,15 @@ export default function CockpitDashboard() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--background)] text-[var(--text-offwhite)] overflow-hidden">
+    <div className="flex flex-col h-screen bg-transparent text-[var(--text-offwhite)] overflow-hidden">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-[var(--nav-border)] shrink-0">
+      <header className="flex items-center justify-between px-6 py-3 bg-[var(--background)]/50 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-[var(--primary-teal)] font-mono text-sm terminal-glow">▶</span>
           <h1 className="font-semibold text-[var(--text-offwhite)] tracking-tight">
             EstudoHub Pro{" "}
             <span className="text-[var(--text-offwhite)]/40 font-normal">4.0</span>
-            <span className="ml-2 text-[var(--text-offwhite)]/20 font-normal">/ Cockpit</span>
+            <span className="ml-2 text-[var(--text-offwhite)]/20 font-normal">/ Inteligência de Editais</span>
           </h1>
         </div>
 
@@ -260,7 +260,7 @@ export default function CockpitDashboard() {
       {/* ── Body grid ──────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — Grid (larger, grows) */}
-        <aside className="flex flex-col flex-1 border-r border-[var(--nav-border)] overflow-hidden">
+        <aside className="flex flex-col flex-1 overflow-hidden glass">
           <UploadPanel
             status={procStatus}
             currentFile={currentFile}
@@ -268,7 +268,7 @@ export default function CockpitDashboard() {
           />
           
           {/* Metadata Header (DNA 26) */}
-          <div className="px-6 py-4 bg-[var(--bg-graphite)]/30 border-b border-[var(--nav-border)] flex items-center justify-between">
+          <div className="px-6 py-4 bg-[var(--bg-graphite)]/30 flex items-center justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest">Órgão</span>
@@ -298,9 +298,9 @@ export default function CockpitDashboard() {
         </aside>
 
         {/* Right panel — Terminal (fixed width) */}
-        <main className="flex flex-col w-[380px] shrink-0 border-l border-[var(--nav-border)] overflow-hidden">
+        <main className="flex flex-col w-[380px] shrink-0 overflow-hidden glass">
           {/* DNA Monitor (DNA 26 Live) */}
-          <div className="p-4 bg-[var(--bg-graphite)]/50 border-b border-[var(--nav-border)] shrink-0">
+          <div className="p-4 bg-[var(--bg-graphite)]/50 shrink-0">
              <div className="flex items-center justify-between mb-3">
                <h3 className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest flex items-center gap-2">
                   <span className="text-[var(--primary-teal)] animate-pulse">🧬</span> DNA 26 Monitor
@@ -324,7 +324,7 @@ export default function CockpitDashboard() {
           </div>
 
           {/* Discovery Monitor Overlay (Minimalist) */}
-          <div className="p-3 bg-[var(--primary-teal)]/5 border-b border-[var(--nav-border)]">
+          <div className="p-3 bg-[var(--primary-teal)]/5">
              <h3 className="text-[10px] font-mono text-[var(--primary-teal)]/70 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--primary-teal)] opacity-75"></span>

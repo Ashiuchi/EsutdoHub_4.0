@@ -19,8 +19,7 @@ const EDITAIS = [
 export default function Home() {
   return (
     <div className="relative min-h-screen">
-      {/* Theme-aware background: dark → Background01.jpg / light → Background08.jpg */}
-      <ThemeBackground />
+      {/* Page layout */}
 
       {/* Page layout */}
       <div className="flex gap-6 p-6 max-w-[1100px] mx-auto">

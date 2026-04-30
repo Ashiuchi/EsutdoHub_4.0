@@ -170,7 +170,12 @@
       "Bash(findstr \"LISTENING\")",
       "Bash(tasklist *)",
       "PowerShell(Get-Process *)",
-      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(p.dependencies['next-themes']\\)\")"
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(p.dependencies['next-themes']\\)\")",
+      "PowerShell(docker-compose *)",
+      "Bash(where python3 *)",
+      "Bash(where py *)",
+      "Bash(where python.exe)",
+      "Bash(grep \"\\\\.py$\")"
     ]
   }
 }

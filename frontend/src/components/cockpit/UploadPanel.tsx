@@ -11,10 +11,10 @@ interface Props {
 }
 
 const STATUS_CONFIG = {
-  idle:       { label: "Aguardando edital",  color: "text-[var(--text-offwhite)]/40",  dot: "bg-[var(--text-offwhite)]/20"   },
-  processing: { label: "Processando...",      color: "text-yellow-400", dot: "bg-yellow-400 animate-pulse" },
-  done:       { label: "Extração concluída",  color: "text-[var(--primary-teal)]",  dot: "bg-[var(--primary-teal)]"  },
-  error:      { label: "Erro na extração",    color: "text-red-400",    dot: "bg-red-500"    },
+  idle:       { label: "Pronto para análise",  color: "text-[var(--text-offwhite)]/40",  dot: "bg-[var(--text-offwhite)]/20"   },
+  processing: { label: "Analisando edital...", color: "text-yellow-400", dot: "bg-yellow-400 animate-pulse" },
+  done:       { label: "Análise concluída",  color: "text-[var(--primary-teal)]",  dot: "bg-[var(--primary-teal)]"  },
+  error:      { label: "Erro na análise",    color: "text-red-400",    dot: "bg-red-500"    },
 } as const;
 
 export default function UploadPanel({ status, currentFile, onUpload }: Props) {
@@ -41,7 +41,7 @@ export default function UploadPanel({ status, currentFile, onUpload }: Props) {
   const isProcessing = status === "processing";
 
   return (
-    <div className="p-4 border-b border-[var(--nav-border)] shrink-0 space-y-3">
+    <div className="p-4 shrink-0 space-y-3">
       <p className="text-xs font-semibold text-[var(--text-offwhite)]/40 uppercase tracking-widest">
         Upload
       </p>
@@ -109,7 +109,7 @@ export default function UploadPanel({ status, currentFile, onUpload }: Props) {
                 />
               </svg>
               <span className={`text-xs font-mono transition-colors ${dragging ? "text-[var(--primary-teal)]" : "text-[var(--text-offwhite)]/20"}`}>
-                {dragging ? "Solte aqui" : "Drop PDF ou clique"}
+                {dragging ? "Solte o Edital" : "Upload de Novo Edital"}
               </span>
             </motion.div>
           )}

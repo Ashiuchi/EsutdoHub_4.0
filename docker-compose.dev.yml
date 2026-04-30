@@ -26,6 +26,8 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=dev-root-token
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - CLERK_JWT_ISSUER=${CLERK_JWT_ISSUER}
     depends_on:
       - db
       - ollama
@@ -56,6 +58,8 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
 
   moenda:
     build: ./backend
