@@ -74,9 +74,12 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=dev-root-token
     depends_on:
       - db
       - ollama
+      - vault
     restart: unless-stopped
 
   pescador:

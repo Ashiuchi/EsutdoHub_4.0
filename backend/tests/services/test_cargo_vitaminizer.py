@@ -1,7 +1,12 @@
 import pytest
 from pathlib import Path
-from unittest.mock import patch, AsyncMock, MagicMock
-from app.services.cargo_vitaminizer import CargoVitaminizerAgent, MappingDiscovery, GlobalMetadata
+from unittest.mock import patch, AsyncMock
+from app.services.cargo_vitaminizer import (
+    CargoVitaminizerAgent,
+    MappingDiscovery,
+    GlobalDNA,
+    CargoDNA,
+)
 from app.schemas.edital_schema import Cargo, EditalGeral, CargoIdentificado
 
 
@@ -25,7 +30,6 @@ def test_process_single_table_short_table_skipped():
     discovery = MappingDiscovery(acronyms={}, regions={}, headers=[])
     cargo_totals = {"Analista": {"vagas_ac": 0}}
     agent._process_single_table("| A |\n| 1 |", discovery, [], cargo_totals)
-    # Should not raise, just return early
 
 
 def test_process_single_table_without_pipe_skipped():
@@ -37,8 +41,7 @@ def test_process_single_table_without_pipe_skipped():
 def test_process_single_table_malformed_handled_gracefully():
     agent = CargoVitaminizerAgent()
     discovery = MappingDiscovery(acronyms={"AC": "vagas_ac"}, regions={}, headers=[])
-    cargo_totals = {}
-    agent._process_single_table("|||bad|||data", discovery, _CARGOS_ID, cargo_totals)
+    agent._process_single_table("|||bad|||data", discovery, _CARGOS_ID, {})
 
 
 # ── _aggregate_vacancies ─────────────────────────────────────────────────────
@@ -53,11 +56,7 @@ def test_aggregate_vacancies_empty_tables():
 
 def test_aggregate_vacancies_processes_tables():
     agent = CargoVitaminizerAgent()
-    discovery = MappingDiscovery(
-        acronyms={"AC": "vagas_ac"},
-        regions={},
-        headers=["Cargo"],
-    )
+    discovery = MappingDiscovery(acronyms={"AC": "vagas_ac"}, regions={}, headers=["Cargo"])
     result = agent._aggregate_vacancies([_TABLE_MD], discovery, _CARGOS_ID)
     assert isinstance(result, dict)
 
@@ -70,7 +69,7 @@ async def test_discover_structure_success():
     mock_mapping = MappingDiscovery(
         acronyms={"AC": "vagas_ac"}, regions={"01": "Analista"}, headers=["Cargo"]
     )
-    with patch.object(agent.ollama_provider, 'generate_json',
+    with patch.object(agent.ollama_provider, "generate_json",
                       new_callable=AsyncMock, return_value=mock_mapping):
         result = await agent._discover_structure("Texto do edital", [_TABLE_MD])
         assert result.acronyms == {"AC": "vagas_ac"}
@@ -79,38 +78,82 @@ async def test_discover_structure_success():
 @pytest.mark.asyncio
 async def test_discover_structure_provider_failure_returns_empty():
     agent = CargoVitaminizerAgent()
-    with patch.object(agent.ollama_provider, 'generate_json',
-                      new_callable=AsyncMock,
-                      side_effect=Exception("LLM offline")):
+    with patch.object(agent.ollama_provider, "generate_json",
+                      new_callable=AsyncMock, side_effect=Exception("LLM offline")):
         result = await agent._discover_structure("Texto", [])
         assert result.acronyms == {}
         assert result.regions == {}
 
 
-# ── _extract_global_metadata ─────────────────────────────────────────────────
+# ── _extract_global_dna ──────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_extract_global_metadata_success():
+async def test_extract_global_dna_success():
     agent = CargoVitaminizerAgent()
-    mock_meta = GlobalMetadata(
-        edital_info=EditalGeral(orgao="TRT", banca="CESPE"),
+    mock_dna = GlobalDNA(
+        orgao="TRT",
+        banca="CESPE",
+        data_prova="15/06/2025",
+        inscription_start="01/04/2025",
+        inscription_end="30/04/2025",
+        fee=85.0,
         salary_patterns=["R$ 8.000,00"],
     )
-    with patch.object(agent.ollama_provider, 'generate_json',
-                      new_callable=AsyncMock, return_value=mock_meta):
-        result = await agent._extract_global_metadata("Texto do edital")
-        assert result.edital_info.orgao == "TRT"
+    with patch.object(agent.ollama_provider, "generate_json",
+                      new_callable=AsyncMock, return_value=mock_dna):
+        result = await agent._extract_global_dna("Texto do edital")
+        assert result.orgao == "TRT"
+        assert result.fee == 85.0
+        assert result.salary_patterns == ["R$ 8.000,00"]
 
 
 @pytest.mark.asyncio
-async def test_extract_global_metadata_failure_returns_default():
+async def test_extract_global_dna_failure_returns_default():
     agent = CargoVitaminizerAgent()
-    with patch.object(agent.ollama_provider, 'generate_json',
-                      new_callable=AsyncMock,
-                      side_effect=Exception("LLM error")):
-        result = await agent._extract_global_metadata("Texto")
-        assert result.edital_info.orgao == "Pendente"
+    with patch.object(agent.ollama_provider, "generate_json",
+                      new_callable=AsyncMock, side_effect=Exception("LLM error")):
+        result = await agent._extract_global_dna("Texto")
+        assert result.orgao == "Pendente"
         assert result.salary_patterns == []
+
+
+# ── _extract_cargo_dna ───────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_extract_cargo_dna_no_context_returns_default():
+    agent = CargoVitaminizerAgent()
+    result = await agent._extract_cargo_dna("Analista Judiciário", None)
+    assert result.escolaridade == "Não informada"
+    assert result.salario == 0.0
+
+
+@pytest.mark.asyncio
+async def test_extract_cargo_dna_success():
+    agent = CargoVitaminizerAgent()
+    mock_dna = CargoDNA(
+        salario=12000.0,
+        escolaridade="Ensino Superior em Direito",
+        area="Area Judiciária",
+        atribuicoes="Analisar, Instruir, Relatar",
+        requisitos="Graduação em Direito, OAB ativo",
+        lotation_cities="São Paulo",
+        jornada="40h semanais",
+    )
+    with patch.object(agent.ollama_provider, "generate_json",
+                      new_callable=AsyncMock, return_value=mock_dna):
+        result = await agent._extract_cargo_dna("Analista Judiciário", "contexto do cargo")
+        assert result.salario == 12000.0
+        assert result.escolaridade == "Ensino Superior em Direito"
+
+
+@pytest.mark.asyncio
+async def test_extract_cargo_dna_failure_returns_default():
+    agent = CargoVitaminizerAgent()
+    with patch.object(agent.ollama_provider, "generate_json",
+                      new_callable=AsyncMock, side_effect=Exception("LLM error")):
+        result = await agent._extract_cargo_dna("Técnico", "algum contexto")
+        assert result.salario == 0.0
+        assert result.jornada == "Não informada"
 
 
 # ── vitaminize ────────────────────────────────────────────────────────────────
@@ -125,57 +168,102 @@ async def test_vitaminize_full_flow(tmp_path):
     (storage_path / "tables" / "tabela_0.md").write_text(_TABLE_MD, encoding="utf-8")
 
     mock_discovery = MappingDiscovery(acronyms={}, regions={}, headers=[])
-    mock_meta = GlobalMetadata(
-        edital_info=EditalGeral(orgao="TRT", banca="CESPE"),
-        salary_patterns=["R$ 8.000,00"],
-    )
+    mock_global_dna = GlobalDNA(orgao="TRT", banca="CESPE", salary_patterns=["R$ 8.000,00"])
+    mock_cargo_dna = CargoDNA(salario=8000.0, escolaridade="Superior")
 
-    with patch.object(agent, '_discover_structure',
+    with patch.object(agent, "_discover_structure",
                       new_callable=AsyncMock, return_value=mock_discovery), \
-         patch.object(agent, '_extract_global_metadata',
-                      new_callable=AsyncMock, return_value=mock_meta), \
-         patch('app.services.cargo_vitaminizer.Path') as mock_path_cls:
-
-        mock_path_cls.return_value.__truediv__ = lambda self, o: storage_path / o if o == content_hash else storage_path / o
-        mock_path_cls.return_value.exists.return_value = False
-
-        # Patch with real path
-        with patch('app.services.cargo_vitaminizer.Path',
-                   side_effect=lambda *a: tmp_path if "storage" in str(a[0]) else Path(*a)):
-            result = await agent.vitaminize(content_hash, _CARGOS_ID)
-            assert isinstance(result.cargos_vitaminados, list)
+         patch.object(agent, "_extract_global_dna",
+                      new_callable=AsyncMock, return_value=mock_global_dna), \
+         patch.object(agent, "_extract_cargo_dna",
+                      new_callable=AsyncMock, return_value=mock_cargo_dna), \
+         patch("app.services.cargo_vitaminizer.Path",
+               side_effect=lambda *a: tmp_path if "storage" in str(a[0]) else Path(*a)):
+        result = await agent.vitaminize(content_hash, _CARGOS_ID)
+        assert isinstance(result.cargos_vitaminados, list)
 
 
 @pytest.mark.asyncio
-async def test_vitaminize_filters_noise_cargos(tmp_path):
+async def test_vitaminize_salary_priority_cargo_over_global(tmp_path):
+    """CargoDNA.salario > 0 deve sobrepor GlobalDNA.salary_patterns."""
     agent = CargoVitaminizerAgent()
-    content_hash = "noise-hash"
+    content_hash = "salary-priority-hash"
+    storage_path = tmp_path / content_hash
+    (storage_path / "tables").mkdir(parents=True)
+    (storage_path / "main.md").write_text("Edital.", encoding="utf-8")
+
+    mock_discovery = MappingDiscovery(acronyms={}, regions={}, headers=[])
+    mock_global_dna = GlobalDNA(orgao="TRT", banca="CESPE", salary_patterns=["R$ 5.000,00"])
+    mock_cargo_dna = CargoDNA(salario=12000.0)
+
+    with patch.object(agent, "_discover_structure",
+                      new_callable=AsyncMock, return_value=mock_discovery), \
+         patch.object(agent, "_extract_global_dna",
+                      new_callable=AsyncMock, return_value=mock_global_dna), \
+         patch.object(agent, "_extract_cargo_dna",
+                      new_callable=AsyncMock, return_value=mock_cargo_dna), \
+         patch("app.services.cargo_vitaminizer.Path",
+               side_effect=lambda *a: tmp_path if "storage" in str(a[0]) else Path(*a)):
+        result = await agent.vitaminize(content_hash, _CARGOS_ID)
+        for cargo in result.cargos_vitaminados:
+            assert cargo.salario == 12000.0, "Salário do cargo deve prevalecer sobre o global"
+
+
+@pytest.mark.asyncio
+async def test_vitaminize_salary_fallback_to_global(tmp_path):
+    """CargoDNA.salario == 0.0 deve usar GlobalDNA.salary_patterns como fallback."""
+    agent = CargoVitaminizerAgent()
+    content_hash = "salary-fallback-hash"
+    storage_path = tmp_path / content_hash
+    (storage_path / "tables").mkdir(parents=True)
+    (storage_path / "main.md").write_text("Edital.", encoding="utf-8")
+
+    mock_discovery = MappingDiscovery(acronyms={}, regions={}, headers=[])
+    mock_global_dna = GlobalDNA(orgao="TRT", banca="CESPE", salary_patterns=["R$ 5.000,00"])
+    mock_cargo_dna = CargoDNA(salario=0.0)
+
+    with patch.object(agent, "_discover_structure",
+                      new_callable=AsyncMock, return_value=mock_discovery), \
+         patch.object(agent, "_extract_global_dna",
+                      new_callable=AsyncMock, return_value=mock_global_dna), \
+         patch.object(agent, "_extract_cargo_dna",
+                      new_callable=AsyncMock, return_value=mock_cargo_dna), \
+         patch("app.services.cargo_vitaminizer.Path",
+               side_effect=lambda *a: tmp_path if "storage" in str(a[0]) else Path(*a)):
+        result = await agent.vitaminize(content_hash, _CARGOS_ID)
+        for cargo in result.cargos_vitaminados:
+            assert cargo.salario == 5000.0, "Deve usar salário global como fallback"
+
+
+@pytest.mark.asyncio
+async def test_vitaminize_with_cargo_contexts(tmp_path):
+    """cargo_contexts deve ser repassado ao DNA Sniper."""
+    agent = CargoVitaminizerAgent()
+    content_hash = "ctx-hash"
     storage_path = tmp_path / content_hash
     storage_path.mkdir()
     (storage_path / "main.md").write_text("Edital.", encoding="utf-8")
     (storage_path / "tables").mkdir()
 
-    noisy_cargos = [
-        CargoIdentificado(titulo="Total", codigo_edital=None),
-        CargoIdentificado(titulo="Jurado", codigo_edital=None),
-        CargoIdentificado(titulo="Analista Judiciário", codigo_edital="01"),
-    ]
-
+    contexts = {"Analista Judiciário": "O cargo requer graduação em Direito."}
     mock_discovery = MappingDiscovery(acronyms={}, regions={}, headers=[])
-    mock_meta = GlobalMetadata(
-        edital_info=EditalGeral(orgao="TRT", banca="CESPE"),
-        salary_patterns=[],
-    )
+    mock_global_dna = GlobalDNA(orgao="TRT", banca="CESPE")
+    mock_cargo_dna = CargoDNA(escolaridade="Superior em Direito")
 
-    with patch.object(agent, '_discover_structure',
+    captured_contexts = []
+
+    async def fake_extract_cargo_dna(titulo, context):
+        captured_contexts.append((titulo, context))
+        return mock_cargo_dna
+
+    with patch.object(agent, "_discover_structure",
                       new_callable=AsyncMock, return_value=mock_discovery), \
-         patch.object(agent, '_extract_global_metadata',
-                      new_callable=AsyncMock, return_value=mock_meta), \
-         patch('app.services.cargo_vitaminizer.Path',
+         patch.object(agent, "_extract_global_dna",
+                      new_callable=AsyncMock, return_value=mock_global_dna), \
+         patch.object(agent, "_extract_cargo_dna", side_effect=fake_extract_cargo_dna), \
+         patch("app.services.cargo_vitaminizer.Path",
                side_effect=lambda *a: tmp_path if "storage" in str(a[0]) else Path(*a)):
+        await agent.vitaminize(content_hash, _CARGOS_ID, cargo_contexts=contexts)
 
-        result = await agent.vitaminize(content_hash, noisy_cargos)
-        titles = [c.titulo for c in result.cargos_vitaminados]
-        assert "Total" not in titles
-        assert "Jurado" not in titles
-        assert "Analista Judiciário" in titles
+    analista_call = next((c for t, c in captured_contexts if t == "Analista Judiciário"), None)
+    assert analista_call == "O cargo requer graduação em Direito."

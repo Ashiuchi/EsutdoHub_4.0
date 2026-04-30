@@ -35,7 +35,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
         suppressHydrationWarning={true}
       >
-        <body className="min-h-full text-[var(--text-offwhite)]" suppressHydrationWarning={true}>
+        <body className="min-h-full bg-[var(--background)] text-[var(--text-offwhite)]" suppressHydrationWarning={true}>
           <ThemeProvider>
             <ThemeBackground />
             <Sidebar />

@@ -8,13 +8,14 @@ from pydantic import BaseModel
 from app.providers.base_provider import BaseLLMProvider
 from app.schemas.edital_schema import Cargo, Materia
 from app.core.logging_streamer import log_streamer
+from app.services.syllabus_auditor import SyllabusAuditorAgent
 
 logger = logging.getLogger(__name__)
 
 # Ollama/Groq: prompt enxuto, contexto pequeno
 _PROMPT_LITE = """Analise o fragmento de edital e extraia o conteúdo programático para o cargo "{titulo}".
 
-Responda SOMENTE com JSON válido, sem texto adicional:
+Responda SOMENTE with JSON válido, sem texto adicional:
 {{"materias": [{{"nome": "nome da matéria", "topicos": ["tópico 1", "tópico 2"]}}]}}
 
 Se não encontrar conteúdo programático para o cargo, retorne: {{"materias": []}}
@@ -23,20 +24,25 @@ FRAGMENTO DO EDITAL:
 {context}
 """
 
-# Gemini Pro: prompt rico, contexto grande
-_PROMPT_ELITE = """Você é um especialista em análise de editais de concurso público brasileiro.
+# Gemini Pro: prompt Auditor Especialista — fidelidade absoluta e cobertura total
+_PROMPT_ELITE = """Você é um Auditor Especialista em Conteúdo Programático de Concursos Públicos brasileiros.
 
-Analise o trecho abaixo e extraia o programa COMPLETO de estudos para o cargo "{titulo}".
+Sua missão: extrair o programa de estudos COMPLETO e FIEL ao edital para o cargo "{titulo}".
 
-REGRAS:
-1. Liste todas as matérias/disciplinas exigidas para o cargo.
-2. Para cada matéria, extraia todos os tópicos de forma granular.
-3. Responda APENAS com JSON válido seguindo o schema abaixo.
+REGRAS DE OURO (inegociáveis):
+1. NENHUMA matéria pode ser omitida. Se o edital lista 8 disciplinas, você extrai exatamente 8.
+2. NENHUM tópico pode ser omitido. Copie cada tópico com fidelidade ao texto original.
+3. NÃO invente tópicos que não estejam explicitamente no trecho do edital.
+4. NÃO resuma nem generalize: "Direitos e Garantias Fundamentais" ≠ "Direitos Fundamentais".
+5. Se houver subseções dentro de um tópico (ex: "a)", "b)"), inclua cada item como tópico separado.
+6. Ignore cabeçalhos administrativos (comissão, assinatura, observações, taxas de inscrição).
 
-SCHEMA:
-{{"materias": [{{"nome": "string", "topicos": ["string", "string"], "peso": null, "quantidade_questoes": null}}]}}
+SCHEMA DE RESPOSTA (JSON puro, sem texto adicional):
+{{"materias": [{{"nome": "NOME DA MATÉRIA", "topicos": ["tópico 1 exato", "tópico 2 exato"], "quantidade_questoes": null}}]}}
 
-EDITAL:
+Se não houver conteúdo programático para o cargo, retorne: {{"materias": []}}
+
+TRECHO DO EDITAL (cargo: {titulo}):
 {context}
 """
 
@@ -45,7 +51,7 @@ _PROMPT_TABLE = """Analise o conteúdo abaixo e extraia as matérias e tópicos 
 
 O conteúdo abaixo pode estar em formato de tabela. Extraia as matérias e tópicos ignorando a estrutura de colunas e focando no texto.
 
-Responda SOMENTE com JSON válido, sem texto adicional:
+Responda SOMENTE with JSON válido, sem texto adicional:
 {{"materias": [{{"nome": "nome da matéria", "topicos": ["tópico 1", "tópico 2"]}}]}}
 
 Se não encontrar conteúdo programático para o cargo, retorne: {{"materias": []}}
@@ -67,6 +73,7 @@ class CargoSubjects(BaseModel):
 class SubjectsScoutAgent:
     def __init__(self):
         self.semaphore = asyncio.Semaphore(2)
+        self.auditor = SyllabusAuditorAgent()
 
     async def scout(self, content_hash: str, cargos: List[Cargo], chain: List[BaseLLMProvider], cargo_contexts: dict = None) -> List[Cargo]:
         """Extrai o conteúdo programático (Matérias→Tópicos) para cada cargo."""
@@ -108,12 +115,22 @@ class SubjectsScoutAgent:
 
         updated = []
         for cargo, materias in zip(cargos, results):
-            cargo.materias = materias
+            anchor_text = (cargo_contexts.get(cargo.titulo, "") if cargo_contexts else "")
+
+            refined = [self.auditor.refine(m) for m in materias]
+            score = self.auditor.audit(refined, anchor_text)
+
+            cargo.materias = refined
+            cargo.syllabus_score = score.total
             updated.append(cargo)
-            if materias:
+
+            if refined:
                 log_streamer.broadcast({
                     "type": "log",
-                    "message": f"📚 {cargo.titulo}: {len(materias)} matérias extraídas.",
+                    "message": (
+                        f"📚 {cargo.titulo}: {len(refined)} matéria(s) | "
+                        f"{score.n_topicos} tópico(s) | score={score.total}/10 [{score.verdict}]"
+                    ),
                     "level": "INFO",
                 })
         return updated
@@ -208,18 +225,15 @@ class SubjectsScoutAgent:
                 else:
                     template = _PROMPT_ELITE if is_elite else _PROMPT_LITE
 
-                # Determinar o contexto base (seção ancorada ou heurística)
                 if is_anchored:
                     base_context = section
                 else:
-                    base_context = self._find_cargo_subsection(section, cargo.titulo, 10_000) # Busca num range maior antes de fatiar
+                    base_context = self._find_cargo_subsection(section, cargo.titulo, 10_000)
 
-                # Se for Ollama, aplicamos o fatiamento (Chunking Interno)
                 if provider_name == "OllamaProvider" and len(base_context) > ctx_limit:
                     logger.info(f"Ollama fatiando contexto para '{cargo.titulo}' ({len(base_context)} chars)")
                     all_materias = []
                     
-                    # Fatiamento com overlap
                     i = 0
                     while i < len(base_context):
                         chunk = base_context[i : i + ctx_limit]
@@ -238,7 +252,6 @@ class SubjectsScoutAgent:
                     if all_materias:
                         return all_materias
                 else:
-                    # Fluxo normal para outros providers ou contextos pequenos
                     context = (base_context[:ctx_limit] + ("\n\n---\nTABELAS RELEVANTES:\n" + table_ctx if table_ctx else "")).strip()
                     prompt = template.format(titulo=cargo.titulo, context=context)
                     try:

@@ -109,11 +109,6 @@ export default function CockpitDashboard() {
         try {
           const data = JSON.parse(e.data) as { message: string; level: SSELogEvent["level"] };
           pushLog(data.message, data.level);
-          
-          // Heurística simples para atualizar metadados do edital via logs se necessário
-          if (data.message.includes("📌 Legenda descoberta")) {
-            // Pode disparar animações ou efeitos no futuro
-          }
         } catch {
           pushLog(e.data, "INFO");
         }
@@ -129,20 +124,14 @@ export default function CockpitDashboard() {
               const index = prev.findIndex((c) => c.titulo === newCargo.titulo);
               if (index >= 0) {
                 const updated = [...prev];
-                // Merge properties, keeping old ones if new ones are empty/zero (optional, but let's overwrite for status)
                 updated[index] = { ...updated[index], ...newCargo };
-
-                // Update selected cargo if it's the one being updated
                 setSelectedCargo(current => 
                   current?.titulo === newCargo.titulo ? updated[index] : current
                 );
-
                 return updated;
               }
               return [...prev, newCargo];
             });
-
-            // Auto-select first cargo if nothing is selected
             setSelectedCargo(current => current || newCargo);
           }
         } catch (err) {
@@ -168,7 +157,6 @@ export default function CockpitDashboard() {
     };
   }, [pushLog]);
 
-  // Auto-selecionar primeiro cargo se nenhum estiver selecionado
   useEffect(() => {
     if (!selectedCargo && cargos.length > 0) {
       setSelectedCargo(cargos[0]);
@@ -227,7 +215,7 @@ export default function CockpitDashboard() {
   return (
     <div className="flex flex-col h-screen bg-transparent text-[var(--text-offwhite)] overflow-hidden">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 bg-[var(--background)]/50 backdrop-blur-sm shrink-0">
+      <header className="flex items-center justify-between px-6 py-3 bg-[var(--background)]/50 backdrop-blur-sm shrink-0 border-b border-[var(--nav-border)]">
         <div className="flex items-center gap-3">
           <span className="text-[var(--primary-teal)] font-mono text-sm terminal-glow">▶</span>
           <h1 className="font-semibold text-[var(--text-offwhite)] tracking-tight">
@@ -259,16 +247,15 @@ export default function CockpitDashboard() {
 
       {/* ── Body grid ──────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left panel — Grid (larger, grows) */}
-        <aside className="flex flex-col flex-1 overflow-hidden glass">
+        {/* Left panel — Grid */}
+        <aside className="flex flex-col flex-1 overflow-hidden glass border-r border-[var(--nav-border)]">
           <UploadPanel
             status={procStatus}
             currentFile={currentFile}
             onUpload={handleUpload}
           />
           
-          {/* Metadata Header (DNA 26) */}
-          <div className="px-6 py-4 bg-[var(--bg-graphite)]/30 flex items-center justify-between">
+          <div className="px-6 py-4 bg-[var(--bg-graphite)]/30 flex items-center justify-between border-b border-[var(--nav-border)]">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest">Órgão</span>
@@ -297,10 +284,9 @@ export default function CockpitDashboard() {
           <CargoGrid cargos={cargos} onCargoClick={setSelectedCargo} fingerprint={edital.fingerprint} />
         </aside>
 
-        {/* Right panel — Terminal (fixed width) */}
+        {/* Right panel — Terminal */}
         <main className="flex flex-col w-[380px] shrink-0 overflow-hidden glass">
-          {/* DNA Monitor (DNA 26 Live) */}
-          <div className="p-4 bg-[var(--bg-graphite)]/50 shrink-0">
+          <div className="p-4 bg-[var(--bg-graphite)]/50 shrink-0 border-b border-[var(--nav-border)]">
              <div className="flex items-center justify-between mb-3">
                <h3 className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest flex items-center gap-2">
                   <span className="text-[var(--primary-teal)] animate-pulse">🧬</span> DNA 26 Monitor
@@ -323,8 +309,7 @@ export default function CockpitDashboard() {
              )}
           </div>
 
-          {/* Discovery Monitor Overlay (Minimalist) */}
-          <div className="p-3 bg-[var(--primary-teal)]/5">
+          <div className="p-3 bg-[var(--primary-teal)]/5 border-b border-[var(--nav-border)]">
              <h3 className="text-[10px] font-mono text-[var(--primary-teal)]/70 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--primary-teal)] opacity-75"></span>
@@ -334,15 +319,10 @@ export default function CockpitDashboard() {
              </h3>
              <div className="space-y-1 max-h-24 overflow-y-auto scrollbar-hide">
                 {logs.filter(l => l.message.includes("📌") || l.message.includes("✅")).slice(-3).reverse().map(log => (
-                  <div key={log.id} className="text-[10px] font-mono text-[var(--text-offwhite)]/40 border-l border-[var(--primary-teal)]/30 pl-2 animate-in fade-in slide-in-from-left-1">
+                  <div key={log.id} className="text-[10px] font-mono text-[var(--text-offwhite)]/40 border-l border-[var(--primary-teal)]/30 pl-2">
                     {log.message}
                   </div>
                 ))}
-                {logs.filter(l => l.message.includes("📌") || l.message.includes("✅")).length === 0 && (
-                  <div className="text-[10px] font-mono text-[var(--text-offwhite)]/20 italic">
-                    Aguardando descobertas da IA...
-                  </div>
-                )}
              </div>
           </div>
           <HackerTerminal logs={logs} connStatus={connStatus} />

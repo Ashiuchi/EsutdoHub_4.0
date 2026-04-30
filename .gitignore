@@ -19,6 +19,7 @@ dist/
 build/
 venv/
 .venv/
+.venv_pescador/
 
 # Node
 node_modules/

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send, ImageIcon } from "lucide-react";
 import PostCard, { type Post } from "./PostCard";
 
@@ -10,7 +10,7 @@ const MOCK_POSTS: Post[] = [
     author: { name: "Ana Beatriz", handle: "anabeatriz", avatarColor: "#6366f1" },
     content:
       "Acabei de concluir os estudos sobre Direito Administrativo para o concurso do TRF. Alguém mais está nessa maratona? 📚",
-    createdAt: new Date(Date.now() - 12 * 60_000).toISOString(),
+    createdAt: "2026-04-29T10:00:00.000Z",
     likes: 14,
     comments: 3,
   },
@@ -19,7 +19,7 @@ const MOCK_POSTS: Post[] = [
     author: { name: "Carlos Mendes", handle: "cmendes", avatarColor: "#f59e0b" },
     content:
       "Dica de ouro para quem vai fazer o ENEM: resolva provas anteriores cronometradas. Faz toda a diferença na gestão de tempo!\n\nUsando o Cockpit do EstudoHub pra organizar os editais e recomendo demais. 🚀",
-    createdAt: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+    createdAt: "2026-04-29T09:00:00.000Z",
     likes: 37,
     comments: 9,
     liked: true,
@@ -29,7 +29,7 @@ const MOCK_POSTS: Post[] = [
     author: { name: "Rafaela Costa", handle: "rafaelac", avatarColor: "#10b981" },
     content:
       "Alguém tem material de Raciocínio Lógico para compartilhar? Estou travada nos exercícios de sequências numéricas. Qualquer ajuda vale!",
-    createdAt: new Date(Date.now() - 6 * 3_600_000).toISOString(),
+    createdAt: "2026-04-29T08:00:00.000Z",
     likes: 8,
     comments: 15,
   },
@@ -38,6 +38,12 @@ const MOCK_POSTS: Post[] = [
 export default function SocialFeed() {
   const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
   const [draft, setDraft] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Hydration fix: only render content on the client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   function handlePost() {
     const text = draft.trim();
@@ -54,11 +60,14 @@ export default function SocialFeed() {
     setDraft("");
   }
 
+  if (!isMounted) return null;
+
   return (
     <section className="space-y-4">
       {/* Compose box */}
       <div className="glass rounded-xl p-4 space-y-3">
         <textarea
+          suppressHydrationWarning
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {

@@ -33,6 +33,8 @@ class Cargo(BaseModel):
     requisitos: Optional[str] = "Pendente"
     lotation_cities: Optional[str] = "Pendente"
     jornada: Optional[str] = "Pendente"
+    anchor_text: Optional[str] = None
+    syllabus_score: Optional[int] = None
     status: str = Field(default='identificado', description='Status comercial do cargo')
     price: float = Field(default=0.0, description='Preço de acesso ao conteúdo do cargo')
     materias: List[Materia] = Field(default=[], description='Lista de matérias exigidas para este cargo específico')

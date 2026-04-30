@@ -175,7 +175,9 @@
       "Bash(where python3 *)",
       "Bash(where py *)",
       "Bash(where python.exe)",
-      "Bash(grep \"\\\\.py$\")"
+      "Bash(grep \"\\\\.py$\")",
+      "Bash(/mnt/c/Dev/EstudoHub_4.0/venv/bin/pytest tests/services/test_cargo_vitaminizer.py -v)",
+      "Bash(/mnt/c/Dev/EstudoHub_4.0/venv/bin/pytest *)"
     ]
   }
 }

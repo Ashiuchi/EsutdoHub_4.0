@@ -1,6 +1,7 @@
-import { Users, TrendingUp } from "lucide-react";
+import { Users } from "lucide-react";
 import SocialFeed from "@/components/social/SocialFeed";
 import ThemeBackground from "@/components/ThemeBackground";
+import TrendingEditais from "@/components/home/TrendingEditais";
 
 const GRUPOS = [
   { name: "Concursos Federais", members: "2,4k membros" },
@@ -9,20 +10,14 @@ const GRUPOS = [
   { name: "Residência Médica", members: "3,2k membros" },
 ];
 
-const EDITAIS = [
-  { title: "TCU 2025 – Auditor Federal", tag: "Federal", vagas: 40 },
-  { title: "TJSP – Escrevente Técnico", tag: "Estadual", vagas: 200 },
-  { title: "Correios – Carteiro", tag: "Federal", vagas: 150 },
-  { title: "INSS – Perito Médico", tag: "Federal", vagas: 900 },
-];
-
 export default function Home() {
   return (
     <div className="relative min-h-screen">
-      {/* Page layout */}
+      {/* Theme-aware background: dark → Background01.jpg / light → Background08.jpg */}
+      <ThemeBackground />
 
       {/* Page layout */}
-      <div className="flex gap-6 p-6 max-w-[1100px] mx-auto">
+      <div className="flex gap-6 p-6 max-w-[1100px] mx-auto relative z-10">
         {/* ── Feed ──────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
           <SocialFeed />
@@ -58,33 +53,7 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Editais em Alta */}
-          <div className="glass rounded-xl p-4 space-y-4">
-            <h2
-              className="text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2"
-              style={{ color: "var(--text-offwhite)", opacity: 0.5 }}
-            >
-              <TrendingUp size={13} strokeWidth={2} />
-              Editais em Alta
-            </h2>
-            <ul className="space-y-3">
-              {EDITAIS.map((e) => (
-                <li key={e.title} className="space-y-1.5">
-                  <p className="text-sm font-medium text-[var(--text-offwhite)] leading-tight">
-                    {e.title}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--primary-teal)]/15 text-[var(--primary-teal)] font-medium">
-                      {e.tag}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-offwhite)]/40">
-                      {e.vagas} vagas
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <TrendingEditais />
         </aside>
       </div>
     </div>

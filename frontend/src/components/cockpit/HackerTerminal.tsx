@@ -37,9 +37,9 @@ export default function HackerTerminal({ logs, connStatus }: Props) {
   }, [logs]);
 
   return (
-    <div className="flex flex-col h-full bg-transparent relative terminal-scanline terminal-crt">
+    <div className="flex flex-col h-full bg-[var(--background)] relative terminal-scanline terminal-crt">
       {/* Terminal topbar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--nav-border)] bg-[var(--bg-graphite)]/40 backdrop-blur-md shrink-0 z-10">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--nav-border)] bg-[var(--background)]/80 backdrop-blur-sm shrink-0 z-10">
         <span className="h-3 w-3 rounded-full bg-red-500/80" />
         <span className="h-3 w-3 rounded-full bg-yellow-500/80" />
         <span className="h-3 w-3 rounded-full bg-green-500/80" />

@@ -88,17 +88,31 @@ def _heading_level(line, layout) -> int:
 def _rows_to_md(rows: list) -> str:
     if not rows:
         return ""
-    cleaned = [
-        [re.sub(r'\s+', ' ', str(c or "")).strip() for c in row]
-        for row in rows
-    ]
-    n_cols = max((len(r) for r in cleaned), default=0)
+    n_cols = max((len(r) for r in rows), default=0)
     if n_cols == 0:
         return ""
-    padded = [r + [""] * (n_cols - len(r)) for r in cleaned]
-    header = "| " + " | ".join(padded[0]) + " |"
+
+    col_carry: list[str] = [""] * n_cols  # rowspan: last non-None value per column
+
+    normalized: list[list[str]] = []
+    for row in rows:
+        padded = list(row) + [None] * (n_cols - len(row))
+        filled: list[str] = []
+        prev_in_row = ""  # colspan fallback: last non-None value in current row
+        for j, cell in enumerate(padded):
+            if cell is not None:
+                val = re.sub(r'\s+', ' ', str(cell)).strip()
+                col_carry[j] = val
+                prev_in_row = val
+                filled.append(val)
+            else:
+                carry = col_carry[j] if col_carry[j] else prev_in_row
+                filled.append(carry)
+        normalized.append(filled)
+
+    header = "| " + " | ".join(normalized[0]) + " |"
     sep    = "| " + " | ".join(["---"] * n_cols) + " |"
-    body   = "\n".join("| " + " | ".join(row) + " |" for row in padded[1:])
+    body   = "\n".join("| " + " | ".join(row) + " |" for row in normalized[1:])
     return "\n".join(filter(None, [header, sep, body]))
 
 
@@ -434,7 +448,6 @@ class GeometricEngine:
         """Processa um PDF inteiro e retorna o Markdown completo."""
         doc = fitz.open(path)
         pages_md: list[str] = []
-        n_table_groups = 0
         try:
             for page in doc:
                 page_md = self.to_markdown(page)

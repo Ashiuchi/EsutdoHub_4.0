@@ -14,12 +14,14 @@ logger = logging.getLogger(__name__)
 class GeminiProvider(BaseLLMProvider):
     """Cloud-based Google Gemini LLM provider"""
 
-    def __init__(self, api_key: str = None, model_name: str = "gemini-2.5-pro", timeout: int = None):
+    def __init__(self, api_key: str = None, model_name: str = "gemini-2.0-flash", timeout: int = None):
         self.api_key = api_key or settings.gemini_api_key
         self.model_name = model_name
         self.timeout = timeout or settings.gemini_timeout
 
         if self.api_key:
+            key_preview = f"{self.api_key[:4]}...{self.api_key[-4:]}" if len(self.api_key) >= 8 else "***"
+            logger.debug(f"GeminiProvider: using key {key_preview}")
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(model_name)
         else:
@@ -64,3 +66,26 @@ class GeminiProvider(BaseLLMProvider):
         except Exception as e:
             logger.error(f"GeminiProvider: Validation failed - {e}")
             raise
+
+    async def embed_text(self, text: str, model_name: str = "models/text-embedding-004") -> list[float]:
+        """Generate embeddings using Gemini"""
+        if not self.api_key:
+            raise ConnectionError("GeminiProvider not configured - missing API key")
+
+        try:
+            loop = asyncio.get_running_loop()
+            result = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: genai.embed_content(
+                        model=model_name,
+                        content=text,
+                        task_type="retrieval_query"
+                    )
+                ),
+                timeout=self.timeout
+            )
+            return result['embedding']
+        except Exception as e:
+            logger.error(f"GeminiProvider: Embedding error - {e}")
+            raise ConnectionError(f"Gemini embedding failed: {e}")

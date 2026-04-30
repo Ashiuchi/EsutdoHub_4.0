@@ -1,24 +1,35 @@
 services:
+  vault:
+    image: hashicorp/vault:1.15
+    privileged: true
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "dev-root-token"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+      VAULT_DISABLE_MLOCK: "true"
+    command: server -dev
+
   backend:
     build: ./backend
     volumes:
       - ./backend:/app
-      - K:\estudohub_storage:/storage_k
+      # - K:/estudohub_storage:/storage_k
       - ./storage:/app/storage
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://estudohub_admin:estudohub_pass@db:5432/estudohub
       - OLLAMA_HOST=http://ollama:11434
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=dev-root-token
     depends_on:
       - db
       - ollama
+      - vault
 
   db:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -51,23 +62,25 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Z3Jvd24tbGl6YXJkLTMuY2xlcmsuYWNjb3VudHMuZGV2JA
+      - CLERK_SECRET_KEY=sk_test_HteRNduUHSeq3SKOBh4BSWjAnvNitXVF36xUbVWsZH
 
   moenda:
     build: ./backend
     command: python mass_ingestion_industrial.py
     volumes:
       - ./backend:/app
-      - K:\estudohub_storage:/storage_k
+      # - K:/estudohub_storage:/storage_k
       - ./storage:/app/storage
     environment:
       - DATABASE_URL=postgresql://estudohub_admin:estudohub_pass@db:5432/estudohub
       - OLLAMA_HOST=http://ollama:11434
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=dev-root-token
     depends_on:
       - db
       - ollama
+      - vault
     restart: unless-stopped
 
   pescador:
@@ -75,7 +88,7 @@ services:
       context: ./backend/scripts
       dockerfile: Dockerfile.pescador
     volumes:
-      - K:\estudohub_storage:/storage_k
+      # - K:/estudohub_storage:/storage_k
       - ./storage:/app/storage
     restart: unless-stopped
 

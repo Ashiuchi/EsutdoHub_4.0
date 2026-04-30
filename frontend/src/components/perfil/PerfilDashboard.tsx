@@ -3,9 +3,11 @@
 import type { CSSProperties } from "react";
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, ShieldCheck, Camera, Check, Loader2, Target, Clock, Star, LogOut, ChevronRight, Search, Upload, User, UserCircle, X, Lock, FileText } from "lucide-react";
-import { useUser, SignInButton, useClerk } from "@clerk/nextjs";
+import { Mail, ShieldCheck, Camera, Check, Loader2, Target, Clock, Star, LogOut, ChevronRight, Search, Upload, X, Lock, FileText } from "lucide-react";
+import { useUser, SignInButton, useClerk, UserProfile } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
+import { dark } from "@clerk/themes";
+import ThemeBackground from "@/components/ThemeBackground";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -77,8 +79,6 @@ function LockOverlay({ message, ctaLabel }: { message: string; ctaLabel: string 
 
 // ── Adaptive Cycle Engine ─────────────────────────────────────────────────────
 
-// How much extra/less time a subject gets based on self-assessed affinity.
-// Low affinity → more time; high affinity → less time.
 const AFFINITY_MULTIPLIER: Record<number, number> = {
   1: 1.40,
   2: 1.20,
@@ -103,7 +103,6 @@ function computeAdaptiveCycle(
   if (!materias.length || totalHoras <= 0) return [];
 
   const n = materias.length;
-  // Use edital peso if present; otherwise equal share
   const raw = materias.map(m => m.peso ?? 1 / n);
   const sumRaw = raw.reduce((a, b) => a + b, 0);
   const base = raw.map(w => w / sumRaw);
@@ -272,6 +271,40 @@ export default function PerfilDashboard() {
 
   const isLight = mounted && resolvedTheme === "light";
 
+  // ── Clerk appearance — theme-aware ────────────────────────────────────────
+  const clerkAppearance = {
+    ...(!isLight && { baseTheme: dark }),
+    variables: {
+      colorBackground: isLight ? "#f8fafc" : "#030712",
+      colorInputBackground: isLight ? "#f1f5f9" : "#18181b",
+      colorText: isLight ? "#0f172a" : "#e4e4e7",
+      colorTextSecondary: isLight ? "#475569" : "#a1a1aa",
+      colorPrimary: "#007F8E",
+      fontFamily: "var(--font-geist-sans)",
+    },
+    elements: {
+      rootBox: "w-full",
+      card: "bg-transparent shadow-none rounded-none border-0",
+      navbar: isLight
+        ? "bg-slate-100/80 border-r border-slate-200"
+        : "bg-zinc-900/60 border-r border-zinc-800",
+      navbarButton: isLight
+        ? "text-slate-700 hover:text-slate-900 hover:bg-slate-200"
+        : "text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800",
+      navbarButtonIcon: "text-[#007F8E]",
+      pageScrollBox: isLight ? "bg-[#f8fafc]" : "bg-[#030712]",
+      formFieldInput: isLight
+        ? "bg-slate-100 border-slate-300 text-slate-900"
+        : "bg-zinc-900 border-zinc-800 text-zinc-100",
+      formButtonPrimary: "bg-[#007F8E] hover:bg-[#007F8E]/80 shadow-none",
+      headerTitle: isLight ? "text-slate-900" : "text-zinc-100",
+      headerSubtitle: isLight ? "text-slate-500" : "text-zinc-400",
+      dividerLine: isLight ? "bg-slate-200" : "bg-zinc-800",
+      profileSection: isLight ? "border-slate-200" : "border-zinc-800",
+      profileSectionTitle: isLight ? "text-slate-500" : "text-zinc-400",
+    },
+  };
+
   // ── Handlers ──────────────────────────────────────────────────────────────
   const updateMetadata = async (newData: any) => {
     setSaving(true);
@@ -340,7 +373,6 @@ export default function PerfilDashboard() {
   const availableCargos = selectedEdital?.cargos || [];
   const selectedCargo = availableCargos.find(c => c.titulo === selectedCargoTitle);
 
-  // userTier must be derived before any early returns so hooks below are unconditional
   const userTier = ((user?.unsafeMetadata as any)?.tier as Tier) || 'Free';
   const isAdaptive = userTier === 'Platinum';
   const totalHorasSemanais = studyHours * studyDays;
@@ -359,6 +391,7 @@ export default function PerfilDashboard() {
   if (!isSignedIn) {
     return (
       <div className="min-h-screen bg-transparent flex flex-col items-center justify-center gap-5 text-center px-6">
+        <ThemeBackground />
         <div className="w-20 h-20 rounded-full border flex items-center justify-center glass">
           <ShieldCheck className="w-9 h-9 text-zinc-600" />
         </div>
@@ -381,6 +414,7 @@ export default function PerfilDashboard() {
 
   return (
     <div className="min-h-screen relative bg-transparent pb-20">
+      <ThemeBackground />
       
       {/* ── Header / Banner ──────────────────────────────────────────────── */}
       <div className={`h-[180px] relative overflow-hidden ${!bannerUrl ? (isLight ? "bg-zinc-200" : "bg-zinc-900") : ""}`} style={bannerStyle}>
@@ -395,7 +429,7 @@ export default function PerfilDashboard() {
       </div>
 
       {/* ── Avatar Overlap ──────────────────────────────────────────────── */}
-      <div className="px-6 md:px-12 -mt-12 flex flex-col md:flex-row md:items-end gap-6">
+      <div className="px-6 md:px-12 -mt-12 flex flex-col md:flex-row md:items-end gap-6 relative z-10">
         <div className="relative group cursor-pointer" onClick={() => setShowAvatarModal(true)}>
           <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-[var(--background)] shadow-xl relative z-10 bg-zinc-800">
             <img src={user.imageUrl} alt={displayName} className="w-full h-full object-cover" />
@@ -417,105 +451,12 @@ export default function PerfilDashboard() {
         </div>
       </div>
 
-      {/* ── Modal de Avatar ────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showAvatarModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => !uploadingAvatar && setShowAvatarModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md glass p-8 rounded-3xl overflow-hidden shadow-2xl"
-            >
-              <button 
-                onClick={() => setShowAvatarModal(false)}
-                className="absolute top-4 right-4 p-2 text-white/40 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-
-              <h3 className="text-xl font-bold text-white mb-2">Personalizar Perfil</h3>
-              <p className="text-sm text-white/50 mb-8">Escolha como quer ser visto na plataforma</p>
-
-              <div className="space-y-8">
-                {/* Upload Local */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#007F8E]">Foto do Computador</label>
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:bg-white/5 hover:border-[#007F8E]/50 transition-all">
-                    {uploadingAvatar ? (
-                      <Loader2 className="animate-spin text-[#007F8E]" size={24} />
-                    ) : (
-                      <>
-                        <Upload size={24} className="text-white/20 mb-2" />
-                        <span className="text-xs text-white/40 font-medium">Clique para fazer upload</span>
-                      </>
-                    )}
-                    <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
-                  </label>
-                </div>
-
-                {/* Presets DiceBear */}
-                <div className="space-y-4">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#007F8E]">Avatares Prontos</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {AVATAR_PRESETS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        disabled={uploadingAvatar}
-                        onClick={() => handlePresetAvatar(preset.url)}
-                        className="group flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#007F8E]/50 hover:bg-[#007F8E]/10 transition-all text-left disabled:opacity-50"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden border border-white/10 group-hover:border-[#007F8E]/30">
-                          <img src={`${preset.url}${preset.id}`} alt={preset.name} className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-xs font-bold text-white/70 group-hover:text-white">{preset.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {uploadingAvatar && (
-                <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
-                  <div className="bg-[#007F8E] text-white px-4 py-2 rounded-full text-xs font-bold animate-pulse">
-                    SINCRONIZANDO...
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-
-      <AnimatePresence>
-        {editingBanner && (
-           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-6 md:px-12 mt-6">
-             <div className="glass p-4 rounded-xl flex flex-wrap gap-4 items-center">
-                {BANNER_PRESETS.map(p => (
-                  <button key={p.id} onClick={() => saveBanner(p.value)} className="h-10 px-4 rounded-lg text-xs font-bold text-white border border-white/10" style={{ background: p.value }}>{p.label}</button>
-                ))}
-                <input 
-                  type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)} 
-                  placeholder="URL da imagem..."
-                  className="flex-1 min-w-[200px] bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#007F8E]" 
-                />
-                <button onClick={() => saveBanner(urlInput)} className="p-2 bg-[#007F8E] rounded-lg text-white"><Check size={16}/></button>
-             </div>
-           </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ── Grid de Seções ──────────────────────────────────────────────── */}
-      <div className="px-6 md:px-12 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="px-6 md:px-12 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
         
         {/* COLUNA 1 & 2: MISSÃO E DIAGNÓSTICO */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* SEÇÃO: OBJETIVO (O QUE ESTUDAR) */}
           <section className="glass p-8 rounded-3xl relative overflow-hidden">
             <div className="flex items-center gap-4 mb-8">
               <div className="w-10 h-10 rounded-xl bg-[#007F8E]/20 flex items-center justify-center text-[#007F8E]">
@@ -568,7 +509,6 @@ export default function PerfilDashboard() {
             </div>
           </section>
 
-          {/* SEÇÃO: EDITAL VERTICALIZADO — gratuito para todos */}
           <section className="glass p-8 rounded-3xl relative overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
@@ -601,15 +541,8 @@ export default function PerfilDashboard() {
                 ))}
               </div>
             )}
-
-            {userTier === 'Free' && selectedCargo && (
-              <p className="text-[10px] text-white/25 italic mt-4 text-center">
-                Acesse o Premium para transformar este edital em um ciclo de estudos automático
-              </p>
-            )}
           </section>
 
-          {/* SEÇÃO: AFINIDADE (MAPA DE CALOR) */}
           <section className="glass p-8 rounded-3xl relative overflow-hidden">
             <div className={userTier === 'Free' ? 'pointer-events-none select-none' : ''}>
               <div className="flex items-center justify-between mb-8">
@@ -670,9 +603,8 @@ export default function PerfilDashboard() {
         </div>
 
         {/* COLUNA 3: RITMO E CONTA */}
-        <div className="space-y-8">
+        <div className="space-y-8 relative z-10">
           
-          {/* SEÇÃO: RITMO (CRONOGRAMA) */}
           <section className="glass p-8 rounded-3xl bg-gradient-to-b from-white/[0.05] to-transparent relative overflow-hidden">
             <div className={userTier === 'Free' ? 'pointer-events-none select-none' : ''}>
               <div className="flex items-center justify-between mb-8">
@@ -724,152 +656,102 @@ export default function PerfilDashboard() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-white/5 mt-4">
-                  <div className="bg-emerald-500/10 rounded-2xl p-4 text-center">
-                    <p className="text-[10px] text-emerald-500 font-bold uppercase mb-1">Total Semanal Estimado</p>
-                    <p className="text-2xl font-black text-white">{totalHorasSemanais} HORAS</p>
-                  </div>
-                </div>
-
-                {/* ── Distribuição por Matéria ─────────────────────────── */}
+                {/* Distribuição por Matéria */}
                 {cycleData.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
-                      Distribuição Semanal
-                    </p>
+                  <div className="space-y-3 pt-4 border-t border-white/5">
                     {cycleData.map(entry => (
                       <div key={entry.nome} className="space-y-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[10px] font-medium text-white/55 truncate flex-1">{entry.nome}</span>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {entry.status === 'reforco' && (
-                              <span className="text-[8px] font-black px-1 py-0.5 rounded bg-orange-500/20 text-orange-400">+</span>
-                            )}
-                            {entry.status === 'reducao' && (
-                              <span className="text-[8px] font-black px-1 py-0.5 rounded bg-teal-500/20 text-teal-400">−</span>
-                            )}
-                            <span className="text-[10px] font-bold text-white">{entry.horasSemana}h</span>
-                          </div>
+                          <span className="text-[10px] font-bold text-white">{entry.horasSemana}h</span>
                         </div>
                         <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                           <motion.div
-                            className={`h-full rounded-full ${
-                              entry.status === 'reforco' ? 'bg-orange-500' :
-                              entry.status === 'reducao' ? 'bg-teal-400' : 'bg-emerald-500'
-                            }`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${entry.proporcao * 100}%` }}
-                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            className={`h-full rounded-full ${entry.status === 'reforco' ? 'bg-orange-500' : entry.status === 'reducao' ? 'bg-teal-400' : 'bg-emerald-500'}`}
+                            initial={{ width: 0 }} animate={{ width: `${entry.proporcao * 100}%` }}
                           />
                         </div>
                       </div>
                     ))}
-
-                    {userTier === 'Premium' && (
-                      <div className="mt-3 flex items-start gap-3 p-3 rounded-xl border border-amber-500/15 bg-amber-500/5">
-                        <Lock size={13} className="text-amber-500/60 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-[9px] font-bold text-amber-500/70 uppercase tracking-widest">Ciclo Adaptativo</p>
-                          <p className="text-[9px] text-white/35 mt-0.5 leading-relaxed">
-                            Upgrade para Platinum para ativar Rebalanceamento por Afinidade
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             </div>
 
             {userTier === 'Free' && (
-              <LockOverlay
-                message="Acesse seu Ciclo Pro no Plano Premium"
-                ctaLabel="Conhecer Planos Pro"
-              />
+              <LockOverlay message="Acesse seu Ciclo Pro no Plano Premium" ctaLabel="Conhecer Planos Pro" />
             )}
           </section>
 
-          {/* SEÇÃO: DIAGNÓSTICO DE ELITE (IA) — PLATINUM */}
           <section className="glass p-8 rounded-3xl relative overflow-hidden">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500">
                   <Star size={20} />
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-[var(--text-offwhite)]">Diagnóstico de Elite</h2>
-                  <span className="text-[10px] font-mono text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">IA MOENDA</span>
-                </div>
+                <h2 className="text-lg font-bold text-[var(--text-offwhite)]">Diagnóstico Elite</h2>
               </div>
             </div>
 
             {userTier === 'Platinum' ? (
-              <RadarChart
-                materias={selectedCargo?.materias.map(m => m.nome) || []}
-                affinities={affinities}
-              />
+              <RadarChart materias={selectedCargo?.materias.map(m => m.nome) || []} affinities={affinities} />
             ) : (
               <div className="relative">
-                <div className="blur-sm pointer-events-none opacity-40 select-none">
-                  <svg viewBox="0 0 200 200" className="w-full max-w-[200px] mx-auto">
-                    {[0.25, 0.5, 0.75, 1].map(r => (
-                      <circle key={r} cx="100" cy="100" r={72 * r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-                    ))}
-                    {[0,1,2,3,4].map(i => {
-                      const a = (2 * Math.PI * i) / 5 - Math.PI / 2;
-                      return <line key={i} x1="100" y1="100" x2={100 + 72 * Math.cos(a)} y2={100 + 72 * Math.sin(a)} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />;
-                    })}
-                    <polygon points="100,28 162,82 138,155 62,155 38,82" fill="rgba(245,158,11,0.1)" stroke="rgb(245,158,11)" strokeWidth="1.5" />
-                  </svg>
+                <div className="blur-sm opacity-40 h-32 flex items-center justify-center">
+                  <Star size={40} className="text-white/10" />
                 </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/10 backdrop-blur-[3px]">
-                  <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                    <Lock size={20} className="text-amber-500/70" />
-                  </div>
-                  <p className="text-center text-[10px] text-white/40 leading-relaxed px-4">
-                    A IA da Moenda está analisando seu edital.<br />
-                    <span className="text-amber-500 font-bold">Torne-se Platinum</span> para ver seu Diagnóstico de Aprovação
-                  </p>
-                </div>
+                <LockOverlay message="Exclusivo para Membros Platinum" ctaLabel="Upgrade para Platinum" />
               </div>
             )}
           </section>
 
-          {/* SEÇÃO: CONTA (CONFIGURAÇÕES) */}
-          <section className="glass p-8 rounded-3xl">
-             <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-zinc-500/20 flex items-center justify-center text-zinc-400">
-                  <ShieldCheck size={20} />
-                </div>
-                <h2 className="text-lg font-bold text-[var(--text-offwhite)]">Configurações</h2>
+          <section className="glass p-8 rounded-3xl relative overflow-hidden">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-zinc-500/20 flex items-center justify-center text-zinc-400">
+                <ShieldCheck size={20} />
               </div>
+              <h2 className="text-lg font-bold text-[var(--text-offwhite)]">Conta</h2>
+            </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <Mail size={16} className="text-zinc-500" />
-                    <span className="text-xs text-white/60 truncate max-w-[140px]">{user.primaryEmailAddress?.emailAddress}</span>
-                  </div>
-                  <Check size={14} className="text-emerald-500" />
-                </div>
-
-                <button 
-                  onClick={() => signOut()}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <LogOut size={16} />
-                    <span className="text-xs font-bold uppercase tracking-wider">Encerrar Sessão</span>
-                  </div>
-                  <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+            <div className="space-y-4">
+              <div className="rounded-xl overflow-hidden border border-white/5 bg-[var(--background)]">
+                <UserProfile path="/perfil" routing="path" appearance={clerkAppearance} />
               </div>
+              <button 
+                onClick={() => signOut()}
+                className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <LogOut size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Sair</span>
+                </div>
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </section>
-
         </div>
-
       </div>
 
+      <AnimatePresence>
+        {showAvatarModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAvatarModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-md glass p-8 rounded-3xl">
+              <h3 className="text-xl font-bold text-white mb-6">Personalizar Perfil</h3>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-3">
+                  {AVATAR_PRESETS.map((preset) => (
+                    <button key={preset.id} onClick={() => handlePresetAvatar(preset.url)} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#007F8E]/50">
+                      <img src={`${preset.url}${preset.id}`} alt={preset.name} className="w-10 h-10 rounded-lg bg-zinc-800" />
+                      <span className="text-xs font-bold text-white/70">{preset.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

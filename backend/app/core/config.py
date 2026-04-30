@@ -1,9 +1,12 @@
 import hvac
 import os
+import logging
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from typing import List, Optional
 
+
+logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     vault_addr: Optional[str] = None
@@ -44,7 +47,7 @@ class Settings(BaseSettings):
                 if client.is_authenticated():
                     read_response = client.secrets.kv.v2.read_secret_version(
                         path="estudohub",
-                        mount_point="secret"
+                        mount_point="kv-v2"
                     )
                     vault_secrets = read_response["data"]["data"]
                     
@@ -64,11 +67,11 @@ class Settings(BaseSettings):
                     if "CLERK_JWT_ISSUER" in vault_secrets:
                         self.clerk_jwt_issuer = vault_secrets["CLERK_JWT_ISSUER"]
                     
-                    print(f"Successfully loaded secrets from Vault at {self.vault_addr}")
+                    logger.info(f"✅ Successfully loaded secrets from Vault at {self.vault_addr}")
                 else:
-                    print("Vault authentication failed.")
+                    logger.error("❌ Vault authentication failed.")
             except Exception as e:
-                print(f"Could not connect to Vault, using environment variables: {e}")
+                logger.warning(f"⚠️ Could not connect to Vault, using environment variables: {e}")
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

@@ -5,8 +5,27 @@ from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey, DateTim
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+try:
+    from pgvector.sqlalchemy import Vector
+except ImportError:
+    # Fallback caso pgvector não esteja instalado no ambiente de build
+    Vector = None
 
 from app.db.database import Base
+
+
+class CanonicalTopic(Base):
+    """Tópico canonizado para padronização via embeddings."""
+
+    __tablename__ = "canonical_topics"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    area = Column(String(255), nullable=True)
+    if Vector:
+        embedding = Column(Vector(768), nullable=False)
+    else:
+        embedding = Column(Text, nullable=False) # Fallback para evitar erro de inicialização
 
 
 class Edital(Base):
@@ -62,6 +81,7 @@ class Cargo(Base):
     jornada = Column(String(100), nullable=True)
     
     anchor_text = Column(Text, nullable=True)
+    syllabus_score = Column(Float, nullable=True)
 
     status = Column(String(50), nullable=False, default="identificado")
     price = Column(Float, nullable=False, default=0.0)
