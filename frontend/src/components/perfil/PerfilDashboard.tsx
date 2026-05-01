@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, ShieldCheck, Camera, Check, Loader2, Target, Clock, Star, LogOut, ChevronRight, Search, Upload, X, Lock, FileText } from "lucide-react";
 import { useUser, SignInButton, useClerk, UserProfile } from "@clerk/nextjs";
@@ -41,10 +41,11 @@ const BANNER_PRESETS = [
 ] as const;
 
 const AVATAR_PRESETS = [
-  { id: "pixel", name: "Pixel Art", url: "https://api.dicebear.com/7.x/pixel-art/svg?seed=" },
-  { id: "bottts", name: "Robô", url: "https://api.dicebear.com/7.x/bottts/svg?seed=" },
-  { id: "avataaars", name: "Humano", url: "https://api.dicebear.com/7.x/avataaars/svg?seed=" },
-  { id: "adventurer", name: "Aventureiro", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=" },
+  { id: "avataaars",  name: "Humanos",      url: "https://api.dicebear.com/7.x/avataaars/svg?seed=" },
+  { id: "pixel-art",  name: "Pixel Art",    url: "https://api.dicebear.com/7.x/pixel-art/svg?seed=" },
+  { id: "bottts",     name: "Robôs",        url: "https://api.dicebear.com/7.x/bottts/svg?seed=" },
+  { id: "big-smile",  name: "Pets/Bichos",  url: "https://api.dicebear.com/7.x/big-smile/svg?seed=" },
+  { id: "adventurer", name: "Aventureiros", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=" },
 ];
 
 function isImageUrl(value: string) {
@@ -238,6 +239,7 @@ export default function PerfilDashboard() {
   const [urlInput, setUrlInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -735,14 +737,82 @@ export default function PerfilDashboard() {
       <AnimatePresence>
         {showAvatarModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAvatarModal(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-md glass p-8 rounded-3xl">
-              <h3 className="text-xl font-bold text-white mb-6">Personalizar Perfil</h3>
-              <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAvatarModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-md glass p-8 rounded-3xl max-h-[90vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">Personalizar Perfil</h3>
+                <button
+                  onClick={() => setShowAvatarModal(false)}
+                  className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+
+              {/* Hero Upload Zone */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-[#007F8E]/60 hover:bg-[#007F8E]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  {uploadingAvatar ? (
+                    <Loader2 size={28} className="text-[#007F8E] animate-spin" />
+                  ) : (
+                    <Upload size={28} className="text-[#007F8E] group-hover:scale-110 transition-transform" />
+                  )}
+                  <span className="text-sm font-bold text-white/80">
+                    {uploadingAvatar ? "Enviando..." : "Enviar Foto"}
+                  </span>
+                  <span className="text-[10px] text-white/30">Clique para selecionar um arquivo</span>
+                </div>
+              </button>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 my-6">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-[10px] text-white/30 uppercase tracking-widest whitespace-nowrap">
+                  ou escolha um preset
+                </span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* Presets Grid — scrollable */}
+              <div className="flex-1 min-h-0 max-h-[70vh] overflow-y-auto pr-1">
                 <div className="grid grid-cols-2 gap-3">
                   {AVATAR_PRESETS.map((preset) => (
-                    <button key={preset.id} onClick={() => handlePresetAvatar(preset.url)} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#007F8E]/50">
-                      <img src={`${preset.url}${preset.id}`} alt={preset.name} className="w-10 h-10 rounded-lg bg-zinc-800" />
+                    <button
+                      key={preset.id}
+                      onClick={() => handlePresetAvatar(preset.url)}
+                      disabled={uploadingAvatar}
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#007F8E]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <img
+                        src={`${preset.url}${preset.id}`}
+                        alt={preset.name}
+                        className="w-10 h-10 rounded-lg bg-zinc-800 flex-shrink-0"
+                      />
                       <span className="text-xs font-bold text-white/70">{preset.name}</span>
                     </button>
                   ))}
