@@ -1,9 +1,12 @@
-# Dependencies
+# Dependencies & Environments
 node_modules/
 .next/
 out/
 build/
 dist/
+venv/
+.env*
+!.env.example
 
 # OS
 .DS_Store
@@ -13,13 +16,11 @@ Thumbs.db
 vault/
 .vault_keys.txt
 
-# Local Tool Configs & Env
+# Local Tool Configs
 .claude/
+.claudeignore/
 .gemini/
 .antigravity/
-.env
-.env.local
-frontend/.env.local
 
 # Storage & Infrastructure
 storage/
