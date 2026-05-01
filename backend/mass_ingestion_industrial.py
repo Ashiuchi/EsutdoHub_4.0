@@ -63,7 +63,8 @@ async def moenda_industrial():
                 result = await ai_service.process_edital(
                     content_hash=content_hash,
                     md_content=md_content,
-                    fingerprint=fingerprint
+                    fingerprint=fingerprint,
+                    is_manual=False
                 )
 
                 if result.get("id"):

@@ -6,13 +6,29 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, time as dtime
+from urllib.parse import urljoin
 
 # Configurações
-BASE_URL = "https://www.pciconcursos.com.br"
-REGIONS = ["nacional", "sudeste", "sul", "nordeste", "centro-oeste", "norte"]
-# Armazenamento no HD Externo (K: mapeado como /storage_k no Docker)
+PCI_BASE_URL = "https://www.pciconcursos.com.br"
+CNB_BASE_URL = "https://concursosnobrasil.com.br"
+
+# Novas Rotas de Bancas (Elite)
+BANCAS_CONFIG = {
+    "CESGRANRIO": "https://www.cesgranrio.org.br/concursos/",
+    "CESGRANRIO_CNU": "https://cpnu.cesgranrio.org.br/página-inicial", # Exemplo de rota CNU
+    "CEBRASPE_ANDAMENTO": "https://www.cebraspe.org.br/concursos/em-andamento/",
+    "FGV": "https://conhecimento.fgv.br/concursos",
+    "VUNESP": "https://www.vunesp.com.br/busca/concurso/encerrados"
+}
+
+# User-Agents para rotação e combate a bloqueios
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+]
+
 SAVE_DIR = "/storage_k"
-# Logs permanecem na pasta storage persistente
 LOG_FILE = "storage/pescaria_log.json"
 YEAR_MIN = 2020
 YEAR_MAX = 2026
@@ -38,15 +54,22 @@ class PescaLogger:
     def is_visited(self, url):
         return url in self.data["visited_urls"]
 
+    def is_downloaded_by_contest_url(self, contest_url):
+        for entry in self.data["downloaded_files"]:
+            if entry.get("contest_url") == contest_url:
+                return True
+        return False
+
     def mark_visited(self, url):
         if url not in self.data["visited_urls"]:
             self.data["visited_urls"].append(url)
             self._save()
 
-    def mark_downloaded(self, filename, url):
+    def mark_downloaded(self, filename, pdf_url, contest_url=None):
         self.data["downloaded_files"].append({
             "filename": filename, 
-            "url": url, 
+            "pdf_url": pdf_url, 
+            "contest_url": contest_url,
             "timestamp": datetime.now().isoformat()
         })
         self._save()
@@ -54,55 +77,60 @@ class PescaLogger:
 class AgentePescador:
     def __init__(self):
         self.logger = PescaLogger(LOG_FILE)
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        
-        # Verifica se o HD externo está montado internamente
-        if not os.path.exists("/storage_k"):
-            print("AVISO: Unidade /storage_k não encontrada. O script pode falhar ao salvar.")
+        self.session = requests.Session()
+        self.session.headers.update({"User-Agent": USER_AGENTS[0]})
         
         if not os.path.exists(SAVE_DIR):
             try:
                 os.makedirs(SAVE_DIR, exist_ok=True)
-                print(f"Diretório de armazenamento criado em: {SAVE_DIR}")
             except Exception as e:
-                print(f"ERRO ao criar diretório no HD externo: {e}")
+                print(f"ERRO ao criar diretório: {e}")
 
     def is_night_mode(self):
         now = datetime.now().time()
-        # Novo Horário: 00:00 às 02:00
         return dtime(0, 0) <= now <= dtime(2, 0)
 
     def wait_for_night(self):
         if not self.is_night_mode():
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Fora do horário (00:00 - 02:00). Aguardando...")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Fora da janela 00h-02h. Aguardando...")
             while not self.is_night_mode():
                 time.sleep(60)
 
-    def slow_down(self):
-        wait = random.uniform(5, 15)
-        print(f"Slow & Stealth: Dormindo por {wait:.2f}s...")
+    def slow_down(self, fast=False):
+        wait = random.uniform(1, 3) if fast else random.uniform(3, 8)
         time.sleep(wait)
 
-    def fetch_page(self, url):
+    def fetch_page(self, url, mobile=False):
+        headers = {"User-Agent": USER_AGENTS[1] if mobile else USER_AGENTS[0]}
         try:
-            response = requests.get(url, headers=self.headers, timeout=15)
+            response = self.session.get(url, headers=headers, timeout=20)
+            if response.status_code == 403 and not mobile:
+                print(f"!!! 403 detectado em {url}. Retentando com Mobile UA...")
+                return self.fetch_page(url, mobile=True)
             response.raise_for_status()
             return response.text
         except Exception as e:
             print(f"Erro ao buscar {url}: {e}")
             return None
 
-    def download_pdf(self, pdf_url, filename):
-        self.wait_for_night()
+    def is_edital_link(self, href, text):
+        href = href.lower()
+        text = text.lower()
+        # Lógica flexível de detecção
+        is_pdf_like = href.endswith(".pdf") or "download" in href or "get_file" in href or "portal" in href or "arquivo" in href
+        is_edital_text = any(kw in text for kw in ["edital", "abertura", "retificação", "regulamento", "anexo", "normativo"])
+        return is_pdf_like and is_edital_text
+
+    def download_pdf(self, pdf_url, filename, contest_url=None, ignore_night_mode=False, mobile=False):
+        if not ignore_night_mode:
+            self.wait_for_night()
         
-        if not pdf_url.startswith("http"):
-            pdf_url = BASE_URL + (pdf_url if pdf_url.startswith("/") else "/" + pdf_url)
-            
+        headers = {"User-Agent": USER_AGENTS[1] if mobile else USER_AGENTS[0]}
         try:
-            print(f"Baixando edital: {pdf_url}")
-            response = requests.get(pdf_url, headers=self.headers, stream=True, timeout=30)
+            print(f">>> [FISGADO] Tentando baixar de: {pdf_url}")
+            response = self.session.get(pdf_url, headers=headers, stream=True, timeout=60)
+            if response.status_code == 403 and not mobile:
+                return self.download_pdf(pdf_url, filename, contest_url, ignore_night_mode, mobile=True)
             response.raise_for_status()
             
             filepath = os.path.join(SAVE_DIR, filename)
@@ -110,110 +138,140 @@ class AgentePescador:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
             
-            self.logger.mark_downloaded(filename, pdf_url)
-            print(f"Sucesso: {filename} salvo em {SAVE_DIR}")
+            self.logger.mark_downloaded(filename, pdf_url, contest_url)
+            print(f"SUCESSO: {filename}")
             return True
         except Exception as e:
-            print(f"Falha ao baixar PDF {pdf_url}: {e}")
+            print(f"FALHA: {e}")
             return False
 
-    def extract_metadata(self, soup, organ_listing):
-        corpo = soup.find('div', id='noticia_corpo') or soup.find('div', class_='noticia') or soup
-        text_corpo = corpo.get_text()
-        
-        meses = "janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro"
-        re_num = r'(\d{2}/\d{2}/(202[0-6]))'
-        re_ext = rf'(\d{{1,2}}\s+de\s+({meses})\s+de\s+(202[0-6]))'
-        
-        year = None
-        combined_match = re.search(f"{re_num}|{re_ext}", text_corpo, re.I)
-        if combined_match:
-            year = int(combined_match.group(2) or combined_match.group(5))
+    def clean_filename(self, year, banca, organ):
+        fname = f"{year}_{banca}_{organ}.pdf".replace(' ', '_')
+        fname = re.sub(r'[^\w\s\.-]', '', fname).upper()
+        return fname[:150] # Limite de tamanho
 
-        banca = "DESCONHECIDA"
-        patterns = [r'Organizadora:\s*([^<\n\.]+)', r'Banca:\s*([^<\n\.]+)', r'Organização:\s*([^<\n\.]+)']
-        for p in patterns:
-            match = re.search(p, text_corpo, re.I)
-            if match:
-                banca = match.group(1).strip()
-                break
-        
-        if banca == "DESCONHECIDA":
-            links = soup.find_all('a', href=True)
-            banca_keywords = {
-                "cebraspe": "CEBRASPE", "cespe": "CEBRASPE",
-                "fgv": "FGV", "vunesp": "VUNESP", "fcc": "FCC",
-                "cesgranrio": "CESGRANRIO", "idecan": "IDECAN",
-                "ibfc": "IBFC", "quadrix": "QUADRIX", "nossorumo": "NOSSO_RUMO"
-            }
-            for link in links:
-                href = link['href'].lower()
-                for key, val in banca_keywords.items():
-                    if key in href:
-                        banca = val
-                        break
-                if banca != "DESCONHECIDA": break
-
-        return year, banca
-
-    def scrape_contest_detail(self, url, organ_listing):
-        if self.logger.is_visited(url):
-            return
-
-        self.slow_down()
-        html = self.fetch_page(url)
-        if not html:
-            return
-
-        soup = BeautifulSoup(html, 'html.parser')
-        
-        edital_link = None
-        for a in soup.find_all('a', href=True):
-            href = a['href'].lower()
-            text = a.get_text().lower()
-            if (".pdf" in href or "pdf" in href) and ("edital" in text or "abertura" in text or "retificado" in text):
-                edital_link = a['href']
-                break
-        
-        if not edital_link:
+    def scrape_cesgranrio(self, bypass=False):
+        print("Scraping CESGRANRIO (Geral + CNU)...")
+        # Geral
+        html = self.fetch_page(BANCAS_CONFIG["CESGRANRIO"])
+        if html:
+            soup = BeautifulSoup(html, 'html.parser')
             for a in soup.find_all('a', href=True):
-                if a['href'].lower().endswith('.pdf') and "edital" in a['href'].lower():
-                    edital_link = a['href']
-                    break
-
-        if not edital_link:
-            self.logger.mark_visited(url)
-            return
-
-        year, banca = self.extract_metadata(soup, organ_listing)
+                if "detalhe" in a['href'].lower() or "/concursos/" in a['href'].lower():
+                    url = urljoin(BANCAS_CONFIG["CESGRANRIO"], a['href'])
+                    if not bypass and self.logger.is_visited(url): continue
+                    self.slow_down(fast=bypass)
+                    detail_html = self.fetch_page(url)
+                    if not detail_html: continue
+                    detail_soup = BeautifulSoup(detail_html, 'html.parser')
+                    for pdf_a in detail_soup.find_all('a', href=True):
+                        if self.is_edital_link(pdf_a['href'], pdf_a.get_text()):
+                            pdf_url = urljoin(url, pdf_a['href'])
+                            organ = detail_soup.find(['h1', 'h2'])
+                            organ_name = organ.get_text().strip() if organ else "CESGRANRIO_CONCURSO"
+                            fname = self.clean_filename(datetime.now().year, "CESGRANRIO", organ_name)
+                            if self.download_pdf(pdf_url, fname, url, ignore_night_mode=bypass):
+                                self.logger.mark_visited(url)
+                                break
         
-        if year and YEAR_MIN <= year <= YEAR_MAX:
-            def clean(s):
-                s = s.replace("/", "_")
-                return re.sub(r'[^\w\s-]', '', s).strip().replace(' ', '_').upper()
-            
-            fname = f"{year}_{clean(banca)}_{clean(organ_listing)}.pdf"
-            if self.download_pdf(edital_link, fname):
-                self.logger.mark_visited(url)
-        else:
-            self.logger.mark_visited(url)
+        # CNU Foco
+        print("Scraping CNU (Cesgranrio)...")
+        cnu_html = self.fetch_page("https://www.gov.br/gestao/pt-br/concursonacional/editais") # URL oficial de editais gov.br
+        if cnu_html:
+            cnu_soup = BeautifulSoup(cnu_html, 'html.parser')
+            for a in cnu_soup.find_all('a', href=True):
+                if self.is_edital_link(a['href'], a.get_text()) or "bloco" in a.get_text().lower():
+                    pdf_url = urljoin("https://www.gov.br", a['href'])
+                    fname = self.clean_filename(2024, "CNU", a.get_text().strip())
+                    self.download_pdf(pdf_url, fname, "CNU_GOV_BR", ignore_night_mode=bypass)
+
+        # BB e CAIXA (Sempre Cesgranrio)
+        for target in ["Banco do Brasil", "Caixa"]:
+            print(f"Buscando especificamente por {target} na Cesgranrio...")
+            # Aqui poderíamos adicionar uma busca via Google ou rotas específicas se soubermos,
+            # mas por enquanto vamos forçar o re-scan da página de concursos da Cesgranrio
+            # com foco em palavras-chave no texto.
+            self.scrape_cesgranrio(bypass=True) # Re-scans detail pages
+
+    def scrape_cebraspe(self, url, bypass=False):
+        print(f"Scraping CEBRASPE ({url})...")
+        html = self.fetch_page(url)
+        if not html: return
+        soup = BeautifulSoup(html, 'html.parser')
+        for a in soup.find_all('a', href=True):
+            if "/concursos/" in a['href'] and len(a['href'].split('/')) > 4:
+                contest_url = urljoin(url, a['href'])
+                if not bypass and self.logger.is_visited(contest_url): continue
+                self.slow_down(fast=bypass)
+                detail_html = self.fetch_page(contest_url)
+                if not detail_html: continue
+                detail_soup = BeautifulSoup(detail_html, 'html.parser')
+                found = False
+                for row in detail_soup.find_all(['tr', 'li']):
+                    pdf_link = row.find('a', href=True)
+                    if pdf_link and self.is_edital_link(pdf_link['href'], row.get_text()):
+                        pdf_url = urljoin(contest_url, pdf_link['href'])
+                        h2 = detail_soup.find('h2')
+                        organ_name = h2.get_text().strip() if h2 else "CEBRASPE_CONCURSO"
+                        fname = self.clean_filename(datetime.now().year, "CEBRASPE", organ_name)
+                        if self.download_pdf(pdf_url, fname, contest_url, ignore_night_mode=bypass):
+                            self.logger.mark_visited(contest_url)
+                            found = True
+                            break
+                if not found: self.logger.mark_visited(contest_url)
+
+    def scrape_fgv(self, bypass=False):
+        print("Scraping FGV...")
+        html = self.fetch_page(BANCAS_CONFIG["FGV"])
+        if not html: return
+        soup = BeautifulSoup(html, 'html.parser')
+        for a in soup.find_all('a', href=True):
+            if "/concursos/" in a['href'] and len(a['href'].split('/')) > 4:
+                url = urljoin(BANCAS_CONFIG["FGV"], a['href'])
+                if not bypass and self.logger.is_visited(url): continue
+                self.slow_down(fast=bypass)
+                detail_html = self.fetch_page(url)
+                if not detail_html: continue
+                detail_soup = BeautifulSoup(detail_html, 'html.parser')
+                for pdf_a in detail_soup.find_all('a', href=True):
+                    if self.is_edital_link(pdf_a['href'], pdf_a.get_text()):
+                        pdf_url = urljoin(url, pdf_a['href'])
+                        organ = detail_soup.find('h1')
+                        organ_name = organ.get_text().strip() if organ else "FGV_CONCURSO"
+                        fname = self.clean_filename(datetime.now().year, "FGV", organ_name)
+                        if self.download_pdf(pdf_url, fname, url, ignore_night_mode=bypass):
+                            self.logger.mark_visited(url)
+                            break
+
+    def scrape_vunesp(self, bypass=False):
+        print("Scraping VUNESP...")
+        html = self.fetch_page(BANCAS_CONFIG["VUNESP"])
+        if not html: return
+        soup = BeautifulSoup(html, 'html.parser')
+        for a in soup.find_all('a', href=True):
+            if "/concurso/" in a['href'].lower() and "detalhe" not in a['href'].lower():
+                url = urljoin("https://www.vunesp.com.br", a['href'])
+                if not bypass and self.logger.is_visited(url): continue
+                self.slow_down(fast=bypass)
+                detail_html = self.fetch_page(url)
+                if not detail_html: continue
+                detail_soup = BeautifulSoup(detail_html, 'html.parser')
+                for pdf_a in detail_soup.find_all('a', href=True):
+                    if self.is_edital_link(pdf_a['href'], pdf_a.get_text()):
+                        pdf_url = urljoin(url, pdf_a['href'])
+                        organ = detail_soup.find('h1')
+                        organ_name = organ.get_text().strip() if organ else "VUNESP_CONCURSO"
+                        fname = self.clean_filename(datetime.now().year, "VUNESP", organ_name)
+                        if self.download_pdf(pdf_url, fname, url, ignore_night_mode=bypass):
+                            self.logger.mark_visited(url)
+                            break
 
     def run(self):
-        print(f"Pescador Iniciado (Storage: {SAVE_DIR} | Janela: 00h-02h)")
-        
-        for region in REGIONS:
-            region_url = f"{BASE_URL}/concursos/{region}/"
-            html = self.fetch_page(region_url)
-            if not html: continue
-                
-            soup = BeautifulSoup(html, 'html.parser')
-            contest_divs = soup.find_all('div', class_=re.compile(r'^[dna]a$'))
-            
-            for div in contest_divs:
-                link_tag = div.find('a', href=True)
-                if not link_tag: continue
-                contest_url = BASE_URL + link_tag['href'] if not link_tag['href'].startswith("http") else link_tag['href']
-                self.scrape_contest_detail(contest_url, link_tag.get_text().strip())
+        print(f">>> JORNADA DE PESCARIA: {datetime.now()} <<<")
+        self.scrape_cesgranrio(bypass=True)
+        self.scrape_cebraspe(BANCAS_CONFIG["CEBRASPE_ANDAMENTO"], bypass=True)
+        self.scrape_fgv(bypass=True)
+        self.scrape_vunesp(bypass=True)
 
 if __name__ == "__main__":
     agente = AgentePescador()
@@ -221,6 +279,12 @@ if __name__ == "__main__":
         try:
             agente.run()
         except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Ciclo interrompido com erro: {e}. Retomando em 1h.")
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Ciclo completo. Dormindo 1h antes de re-verificar...")
-        time.sleep(3600)
+            print(f"Erro no ciclo: {e}")
+        
+        # Lógica de Overtime: se houver um arquivo .overtime, espera apenas 1 minuto
+        if os.path.exists("storage/overtime.signal"):
+            print(">>> MODO OVERTIME ATIVO: Próximo ciclo em 1 minuto...")
+            time.sleep(60)
+        else:
+            print(f"Ciclo concluído. Aguardando 1h...")
+            time.sleep(3600)

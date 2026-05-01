@@ -21,14 +21,20 @@ Este checklist orienta a execução técnica pelo Claude Code.
     - [x] No arquivo `backend/app/services/syllabus_auditor.py`, implementar o método `_check_coverage`.
     - [x] Integrar a validação de cobertura no score final do `audit()`. Punição de -3 pontos por alucinação detectada.
 
-- [ ] **Tarefa 6: Upgrade para pgvector (Infra)**
-    - [ ] No arquivo `docker-compose.yml`, mudar imagem do `db` para `pgvector/pgvector:pg16`.
-    - [ ] Executar `docker-compose up -d db`.
+- [x] **Tarefa 6: Upgrade para pgvector (Infra)**
+    - [x] No arquivo `docker-compose.yml`, mudar imagem do `db` para `pgvector/pgvector:pg16`.
+    - [x] Executar `docker-compose up -d db`.
 
-- [ ] **Tarefa 7: Implementar CanonicalizerService**
-    - [ ] Adicionar `pgvector` ao `requirements.txt`.
-    - [ ] Criar modelo `CanonicalTopic` no `models.py`.
-    - [ ] Criar `app/services/canonicalizer_service.py` com integração ao Gemini `text-embedding-004`.
+- [x] **Tarefa 7: Implementar CanonicalizerService**
+    - [x] Adicionar `pgvector` ao `requirements.txt`.
+    - [x] Criar modelo `CanonicalTopic` no `models.py`.
+    - [x] Criar `app/services/canonicalizer_service.py` com integração inicial.
+
+- [x] **Tarefa 8: Missão RTX — Local Embeddings**
+    - [x] Pull do modelo `nomic-embed-text` no Ollama.
+    - [x] Garantir que `OllamaProvider.embed_text` utiliza `/api/embeddings`.
+    - [x] Executar `vectorize_existing_topics.py` para processar retroativamente os ~45k tópicos.
+    - [x] Validar que o sistema utiliza embeddings locais (768d) por padrão, economizando custos de API e ganhando performance.
 
 ---
 
