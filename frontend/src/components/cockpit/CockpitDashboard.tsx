@@ -12,6 +12,7 @@ import HackerTerminal from "./HackerTerminal";
 import UploadPanel from "./UploadPanel";
 import CargoGrid from "./CargoGrid";
 import CargoDNAGrid from "./CargoDNAGrid";
+import EditalSelector from "./EditalSelector";
 
 export interface LogLine {
   id: number;
@@ -42,6 +43,7 @@ export default function CockpitDashboard() {
       makeLog("Aguardando conexão SSE...", "INFO"),
     ]);
   }, []);
+
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [selectedCargo, setSelectedCargo] = useState<Cargo | null>(null);
   const [edital, setEdital] = useState<Partial<Edital>>({
@@ -49,6 +51,7 @@ export default function CockpitDashboard() {
     banca: "Detectando...",
     status: "idle",
   });
+  const [activeEditalId, setActiveEditalId] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<ConnectionStatus>("connecting");
   const [procStatus, setProcStatus] = useState<ProcessingStatus>("idle");
   const [currentFile, setCurrentFile] = useState<string | null>(null);
@@ -60,37 +63,48 @@ export default function CockpitDashboard() {
     });
   }, []);
 
+  const loadEditalData = useCallback(async (id: string) => {
+    try {
+      pushLog(`Carregando edital ${id.slice(0, 8)}...`, "INFO");
+      const res = await fetch(`http://localhost:8000/api/v1/editais/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setEdital(data);
+        if (data.cargos) {
+          setCargos(data.cargos);
+          if (data.cargos.length > 0) {
+            setSelectedCargo(data.cargos[0]);
+          }
+        }
+        pushLog(`Edital ${data.orgao} carregado com sucesso.`, "SUCCESS");
+      } else {
+        pushLog(`Erro ao carregar edital: ${res.status}`, "ERROR");
+      }
+    } catch (err) {
+      console.error("Erro ao carregar edital:", err);
+      pushLog("Erro de conexão ao carregar edital.", "ERROR");
+    }
+  }, [pushLog]);
+
   // ── History loading ──────────────────────────────────────────────────
   useEffect(() => {
-    async function loadHistory() {
+    async function loadInitial() {
       try {
-        pushLog("Carregando histórico do banco de dados...", "INFO");
-        const res = await fetch("http://localhost:8000/api/v1/");
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
-              pushLog(`Histórico: ${data.length} editais encontrados. Populando grid...`, "SUCCESS");
-              const latest = data[0];
-              setEdital(latest);
-              if (latest.cargos) {
-                setCargos(latest.cargos);
-                if (latest.cargos.length > 0) {
-                  setSelectedCargo(latest.cargos[0]);
-                }
-              }
-            } else {
-              pushLog("Histórico vazio no banco de dados.", "WARNING");
-            }
-          } else {
-            const errText = await res.text();
-            pushLog(`Erro API: ${res.status} - ${errText.slice(0, 50)}`, "ERROR");
+        const res = await fetch("http://localhost:8000/api/v1/editais/list");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const latest = data[0];
+            setActiveEditalId(latest.id);
+            loadEditalData(latest.id);
           }
+        }
       } catch (err) {
-        console.error("Erro ao carregar histórico:", err);
+        console.error("Erro no carregamento inicial:", err);
       }
     }
-    loadHistory();
-  }, [pushLog]);
+    loadInitial();
+  }, [loadEditalData]);
 
   // ── SSE connection ──────────────────────────────────────────────────
   const esRef = useRef<EventSource | null>(null);
@@ -118,21 +132,30 @@ export default function CockpitDashboard() {
         try {
           const event = JSON.parse(e.data);
           
-          if (event.type === "data" && event.payload) {
-            const newCargo = event.payload as Cargo;
-            setCargos((prev) => {
-              const index = prev.findIndex((c) => c.titulo === newCargo.titulo);
-              if (index >= 0) {
-                const updated = [...prev];
-                updated[index] = { ...updated[index], ...newCargo };
-                setSelectedCargo(current => 
-                  current?.titulo === newCargo.titulo ? updated[index] : current
-                );
-                return updated;
+          if (event.type === "data") {
+            // Se o evento confirma que o edital foi processado
+            if (event.status === "processado") {
+              setProcStatus("done");
+              pushLog("Processamento finalizado via SSE.", "SUCCESS");
+              
+              if (event.edital) setEdital(event.edital);
+              if (event.cargos) {
+                setCargos(event.cargos);
+                if (event.cargos.length > 0) setSelectedCargo(event.cargos[0]);
               }
-              return [...prev, newCargo];
-            });
-            setSelectedCargo(current => current || newCargo);
+            } else if (event.payload) {
+              // Atualização de cargo individual (opcional se o backend enviar)
+              const newCargo = event.payload as Cargo;
+              setCargos((prev) => {
+                const index = prev.findIndex((c) => c.titulo === newCargo.titulo);
+                if (index >= 0) {
+                  const updated = [...prev];
+                  updated[index] = { ...updated[index], ...newCargo };
+                  return updated;
+                }
+                return [...prev, newCargo];
+              });
+            }
           }
         } catch (err) {
           console.error("Erro no SSE data:", err);
@@ -194,15 +217,15 @@ export default function CockpitDashboard() {
         }
 
         const result = await res.json();
-        if (result.edital) {
-          setEdital(result.edital);
+        // ATENÇÃO: Não mudamos para 'done' aqui. Esperamos o evento 'data' via SSE.
+        pushLog(`Upload aceito. Aguardando processamento via IA...`, "INFO");
+        
+        if (result.status === "processado") {
+           // Se já existia no banco, retorna imediatamente
+           setProcStatus("done");
+           if (result.edital) setEdital(result.edital);
+           if (result.cargos) setCargos(result.cargos);
         }
-        if (result.cargos && result.cargos.length > 0) {
-          setCargos(result.cargos);
-        }
-
-        pushLog(`Extração concluída com sucesso!`, "INFO");
-        setProcStatus("done");
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Falha no upload";
         pushLog(`Erro: ${msg}`, "ERROR");
@@ -211,6 +234,51 @@ export default function CockpitDashboard() {
     },
     [pushLog]
   );
+
+  const handleCargoAction = useCallback(
+    async (id: string, action: "vitaminar" | "delete") => {
+      const target = cargos.find((c) => c.id === id);
+      const label = target?.titulo ?? id;
+
+      if (action === "vitaminar") {
+        try {
+          const res = await fetch(`http://localhost:8000/api/v1/cargos/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "vitaminado" }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          setCargos((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, status: "vitaminado" } : c))
+          );
+          setSelectedCargo((prev) =>
+            prev?.id === id ? { ...prev, status: "vitaminado" } : prev
+          );
+          pushLog(`[AUDITORIA] Cargo '${label}' movido para GOLD.`, "SUCCESS");
+        } catch (err) {
+          pushLog(`[AUDITORIA] Erro ao vitaminar '${label}': ${err}`, "ERROR");
+        }
+      } else {
+        try {
+          const res = await fetch(`http://localhost:8000/api/v1/cargos/${id}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          setCargos((prev) => prev.filter((c) => c.id !== id));
+          setSelectedCargo((prev) => (prev?.id === id ? null : prev));
+          pushLog(`[EXPURGO] Cargo '${label}' removido.`, "WARNING");
+        } catch (err) {
+          pushLog(`[EXPURGO] Erro ao remover '${label}': ${err}`, "ERROR");
+        }
+      }
+    },
+    [cargos, pushLog]
+  );
+
+  const handleSelectEdital = (id: string) => {
+    setActiveEditalId(id);
+    loadEditalData(id);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-transparent text-[var(--text-offwhite)] overflow-hidden">
@@ -247,6 +315,9 @@ export default function CockpitDashboard() {
 
       {/* ── Body grid ──────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
+        {/* New Selector Panel */}
+        <EditalSelector onSelect={handleSelectEdital} activeId={activeEditalId} />
+
         {/* Left panel — Grid */}
         <aside className="flex flex-col flex-1 overflow-hidden glass border-r border-[var(--nav-border)]">
           <UploadPanel
@@ -281,7 +352,7 @@ export default function CockpitDashboard() {
             </div>
           </div>
 
-          <CargoGrid cargos={cargos} onCargoClick={setSelectedCargo} fingerprint={edital.fingerprint} />
+          <CargoGrid cargos={cargos} onCargoClick={setSelectedCargo} onAction={handleCargoAction} fingerprint={edital.fingerprint} />
         </aside>
 
         {/* Right panel — Terminal */}
@@ -318,7 +389,7 @@ export default function CockpitDashboard() {
                 Discovery Monitor
              </h3>
              <div className="space-y-1 max-h-24 overflow-y-auto scrollbar-hide">
-                {logs.filter(l => l.message.includes("📌") || l.message.includes("✅")).slice(-3).reverse().map(log => (
+                {logs.filter(l => l.message.includes("📌") || l.message.includes("✅") || l.message.includes("SUCCESS")).slice(-3).reverse().map(log => (
                   <div key={log.id} className="text-[10px] font-mono text-[var(--text-offwhite)]/40 border-l border-[var(--primary-teal)]/30 pl-2">
                     {log.message}
                   </div>

@@ -32,60 +32,62 @@ export default function CargoCard({ cargo, onClick, fingerprint }: Props) {
       whileHover={{ scale: 1.015, transition: { duration: 0.15 } }}
       whileTap={{ scale: 0.985 }}
       onClick={() => onClick(cargo)}
-      className="relative w-full text-left rounded-lg border border-[var(--glass-border-color)] bg-[var(--glass-bg)] backdrop-blur-md p-3 overflow-hidden card-shimmer hover:border-[var(--primary-teal)]/30 transition-colors focus:outline-none focus:ring-1 focus:ring-[var(--primary-teal)]/50"
+      className="relative w-full text-left rounded-lg border border-[var(--glass-border-color)] bg-[var(--glass-bg)] backdrop-blur-md p-4 overflow-hidden hover:bg-[var(--nav-hover-bg)] hover:border-[var(--primary-teal)]/40 transition-all focus:outline-none focus:ring-1 focus:ring-[var(--primary-teal)]/50 group"
     >
-      {/* Subtle top accent or DNA progress bar */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--nav-border)]">
+      {/* DNA Progress: 3px gradient line */}
+      <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--nav-border)]">
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${dnaProgress}%` }}
-          className="h-full bg-[var(--primary-teal)] shadow-[0_0_8px_var(--primary-teal)]"
+          className="h-full bg-gradient-to-r from-[var(--primary-teal)]/40 to-[var(--primary-teal)]"
         />
       </div>
 
-      <div className="flex items-start justify-between gap-2 mb-2 pt-1">
-        <h3 className="text-xs font-semibold text-[var(--text-offwhite)] leading-tight line-clamp-2">
+      {/* Status Badge: Absolute Position Tag */}
+      <div className="absolute top-4 right-4 flex flex-col items-end gap-1.5">
+        <span
+          className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border leading-none transition-shadow
+            ${cargo.status === "vitaminado"
+              ? "text-[var(--primary-teal)] bg-[var(--primary-teal)]/10 border-[var(--primary-teal)]/30 group-hover:shadow-[0_0_12px_rgba(0,127,142,0.2)]"
+              : cargo.status === "identificado"
+              ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/30"
+              : "text-[var(--text-offwhite)]/40 bg-[var(--bg-graphite)] border-[var(--nav-border)]"
+            }`}
+        >
+          {cargo.status}
+        </span>
+        {cargo.status === "vitaminado" && (
+          <div className="flex gap-0.5 pr-1">
+             <div className="w-1 h-1 rounded-full bg-[var(--primary-teal)] animate-pulse" />
+             <div className="w-1 h-1 rounded-full bg-[var(--primary-teal)]/60" />
+             <div className="w-1 h-1 rounded-full bg-[var(--primary-teal)]/30" />
+          </div>
+        )}
+      </div>
+
+      <div className="pr-20 pt-1 mb-4">
+        <h3 className="text-sm font-bold text-[var(--text-offwhite)] leading-snug line-clamp-2">
           {cargo.titulo}
         </h3>
-        <div className="flex flex-col items-end gap-1">
-          <span
-            className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono border leading-none
-              ${cargo.status === "vitaminado"
-                ? "text-[var(--primary-teal)] bg-[var(--primary-teal)]/10 border-[var(--primary-teal)]/20 shadow-[0_0_8px_rgba(0,127,142,0.1)]"
-                : cargo.status === "identificado"
-                ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
-                : "text-[var(--text-offwhite)]/40 bg-[var(--bg-graphite)] border-[var(--nav-border)]"
-              }`}
-          >
-            {cargo.status}
+        {fingerprint && (
+          <span className="text-[9px] font-mono text-[var(--primary-teal)]/40 tracking-tight mt-1 block">
+            #{fingerprint.slice(0, 8)}
           </span>
-          {cargo.status === "vitaminado" && (
-            <div className="flex gap-0.5">
-               <div className="w-1 h-1 rounded-full bg-[var(--primary-teal)] animate-pulse" />
-               <div className="w-1 h-1 rounded-full bg-[var(--primary-teal)]/60" />
-               <div className="w-1 h-1 rounded-full bg-[var(--primary-teal)]/30" />
-            </div>
-          )}
-          {fingerprint && (
-            <span className="text-[9px] font-mono text-[var(--primary-teal)]/40 tracking-tight">
-              #{fingerprint.slice(0, 8)}
-            </span>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="flex items-end justify-between">
-        <div className="space-y-0.5">
-          <p className="text-sm font-mono font-semibold text-[var(--primary-teal)] leading-none">
+        <div className="space-y-1.5">
+          <p className="text-lg font-mono font-bold text-[var(--primary-teal)] leading-none tracking-tight">
             {cargo.salario.toLocaleString("pt-BR", {
               style: "currency",
               currency: "BRL",
               minimumFractionDigits: 0,
             })}
           </p>
-          <div className="flex items-center gap-1.5">
-            <p className="text-[10px] text-[var(--text-offwhite)]/40 font-mono">
-              {totalMaterias} mat. · {totalTopicos} tóp.
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] text-[var(--text-offwhite)]/50 font-medium">
+              <span className="text-[var(--text-offwhite)]/80 font-semibold">{totalMaterias}</span> matérias · <span className="text-[var(--text-offwhite)]/80 font-semibold">{totalTopicos}</span> tópicos
             </p>
             {cargo.status === "vitaminado" && (
               <span className="text-[10px] text-[var(--text-offwhite)]/20">| {cargo.vagas_ac} AC + {cargo.vagas_cr} CR</span>
@@ -93,15 +95,15 @@ export default function CargoCard({ cargo, onClick, fingerprint }: Props) {
           </div>
         </div>
 
-        <div className="text-right space-y-0.5">
+        <div className="text-right space-y-1">
           {cargo.price > 0 ? (
-            <p className="text-xs font-mono text-[var(--text-offwhite)]/50">
+            <p className="text-xs font-mono font-medium text-[var(--text-offwhite)]/50">
               R$ {cargo.price.toFixed(2)}
             </p>
           ) : (
-            <p className="text-[10px] font-mono text-[var(--text-offwhite)]/20">gratuito</p>
+            <p className="text-[10px] font-mono text-[var(--text-offwhite)]/20 italic">gratuito</p>
           )}
-          <p className="text-[10px] text-[var(--text-offwhite)] font-mono font-bold">
+          <p className="text-[10px] text-[var(--text-offwhite)] font-mono font-black uppercase tracking-tighter bg-[var(--text-offwhite)]/5 px-1.5 py-0.5 rounded">
             {cargo.vagas_total} vagas
           </p>
         </div>

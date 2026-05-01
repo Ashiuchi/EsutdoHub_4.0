@@ -9,15 +9,21 @@ import CargoModal from "./CargoModal";
 interface Props {
   cargos: Cargo[];
   onCargoClick?: (cargo: Cargo) => void;
+  onAction?: (id: string, action: "vitaminar" | "delete") => void;
   fingerprint?: string;
 }
 
-export default function CargoGrid({ cargos, onCargoClick, fingerprint }: Props) {
+export default function CargoGrid({ cargos, onCargoClick, onAction, fingerprint }: Props) {
   const [selectedCargo, setSelectedCargo] = useState<Cargo | null>(null);
 
   const handleCardClick = (cargo: Cargo) => {
     setSelectedCargo(cargo);
     if (onCargoClick) onCargoClick(cargo);
+  };
+
+  const handleAction = (id: string, action: "vitaminar" | "delete") => {
+    setSelectedCargo(null);
+    onAction?.(id, action);
   };
 
   return (
@@ -44,7 +50,7 @@ export default function CargoGrid({ cargos, onCargoClick, fingerprint }: Props) 
         </div>
 
         {/* Cards area */}
-        <div className="flex-1 overflow-y-auto p-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 content-start">
+        <div className="flex-1 overflow-y-auto p-3 grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 content-start">
           <AnimatePresence mode="popLayout">
             {cargos.length === 0 ? (
               <motion.div
@@ -84,6 +90,7 @@ export default function CargoGrid({ cargos, onCargoClick, fingerprint }: Props) 
       <CargoModal
         cargo={selectedCargo}
         onClose={() => setSelectedCargo(null)}
+        onAction={handleAction}
       />
     </>
   );

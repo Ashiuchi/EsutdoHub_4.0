@@ -1,23 +1,37 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Cargo } from "@/types/edital";
 
 interface Props {
   cargo: Cargo | null;
   onClose: () => void;
+  onAction?: (id: string, action: "vitaminar" | "delete") => void;
 }
 
-export default function CargoModal({ cargo, onClose }: Props) {
-  // Close on Escape
+export default function CargoModal({ cargo, onClose, onAction }: Props) {
+  const [deleteArmed, setDeleteArmed] = useState(false);
+
+  // Reset armed state whenever the modal opens on a different cargo
+  useEffect(() => {
+    setDeleteArmed(false);
+  }, [cargo?.id]);
+
+  // Close on Escape; disarm delete on Escape if armed
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (deleteArmed) {
+          setDeleteArmed(false);
+        } else {
+          onClose();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [onClose, deleteArmed]);
 
   return (
     <AnimatePresence>
@@ -61,6 +75,54 @@ export default function CargoModal({ cargo, onClose }: Props) {
                   )}
                 </div>
               </div>
+              {/* Action buttons — only shown when cargo has an id and a handler */}
+              {cargo.id && onAction && (
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Vitaminar */}
+                  <button
+                    onClick={() => onAction(cargo.id!, "vitaminar")}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs font-mono border border-[var(--primary-teal)]/30 text-[var(--primary-teal)]/70 hover:text-[var(--primary-teal)] hover:bg-[var(--primary-teal)]/10 hover:border-[var(--primary-teal)]/60 transition-all"
+                    aria-label="Vitaminar cargo"
+                    title="Marcar como vitaminado"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Vitaminar</span>
+                  </button>
+
+                  {/* Excluir — 2-click armed confirmation */}
+                  {deleteArmed ? (
+                    <button
+                      onClick={() => {
+                        setDeleteArmed(false);
+                        onAction(cargo.id!, "delete");
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs font-mono border border-red-500 text-red-400 bg-red-500/15 shadow-[0_0_8px_rgba(239,68,68,0.3)] animate-pulse transition-all"
+                      aria-label="Confirmar exclusão"
+                      title="Clique novamente para confirmar a exclusão"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      </svg>
+                      <span>Confirmar?</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteArmed(true)}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs font-mono border border-[var(--nav-border)] text-[var(--text-offwhite)]/40 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/40 transition-all"
+                      aria-label="Excluir cargo"
+                      title="Excluir cargo (requer confirmação)"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span>Excluir</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={onClose}
                 className="text-[var(--text-offwhite)]/40 hover:text-[var(--primary-teal)] transition-colors shrink-0 p-1"
@@ -176,10 +238,10 @@ function StatusBadge({ status }: { status: string }) {
     status === "vitaminado"
       ? "text-[var(--primary-teal)] bg-[var(--primary-teal)]/10 border-[var(--primary-teal)]/20 shadow-[0_0_8px_rgba(0,127,142,0.1)]"
       : status === "identificado"
-      ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
-      : status === "extraido"
-      ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
-      : "text-[var(--text-offwhite)]/40 bg-[var(--text-offwhite)]/5 border-[var(--nav-border)]";
+        ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
+        : status === "extraido"
+          ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
+          : "text-[var(--text-offwhite)]/40 bg-[var(--text-offwhite)]/5 border-[var(--nav-border)]";
 
   return (
     <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border leading-none ${color}`}>

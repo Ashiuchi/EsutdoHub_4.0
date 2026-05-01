@@ -6,6 +6,7 @@ export interface Materia {
 }
 
 export interface Cargo {
+  id?: string;
   titulo: string;
   codigo_edital?: string;
   vagas_ac: number;
