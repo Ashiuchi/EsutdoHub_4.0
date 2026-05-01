@@ -29,6 +29,7 @@ services:
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
       - CLERK_JWT_ISSUER=${CLERK_JWT_ISSUER}
       - CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - WATCHPACK_POLLING=true
     depends_on:
       - db
       - ollama
