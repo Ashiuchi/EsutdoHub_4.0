@@ -1,59 +1,62 @@
 import logging
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.db.models import CanonicalTopic
-from app.providers.gemini_provider import GeminiProvider
+from app.providers.ollama_provider import OllamaProvider
 
 logger = logging.getLogger(__name__)
 
+
 class CanonicalizerService:
-    """Serviço para canonização de tópicos de editais via embeddings."""
+    """Serviço para canonização de tópicos de editais via embeddings locais."""
 
-    def __init__(self, db: Session, gemini_provider: Optional[GeminiProvider] = None):
+    def __init__(self, db: Session, ai_provider: Optional[OllamaProvider] = None):
         self.db = db
-        self.gemini_provider = gemini_provider or GeminiProvider()
+        self.ai_provider = ai_provider or OllamaProvider()
 
-    async def canonicalize(self, topic_name: str, threshold: float = 0.8) -> Tuple[Optional[CanonicalTopic], float]:
+    async def canonicalize(
+        self,
+        topic_name: str,
+        threshold: float = 0.65,
+        embedding: Optional[List[float]] = None,
+    ) -> Tuple[Optional[CanonicalTopic], float]:
+        """Busca o tópico canônico mais próximo via pgvector.
+
+        Aceita um embedding pré-computado para evitar chamada extra à API quando
+        o chamador já gerou o vetor (ex: pipeline de enriquecimento).
         """
-        Recebe um tópico, gera o embedding e busca o vizinho mais próximo.
-        Retorna o tópico canonizado e a pontuação de similaridade (distância de cosseno invertida).
-        """
-        logger.info(f"Canonicalizing topic: {topic_name}")
-        
         try:
-            # 1. Gerar embedding do tópico recebido
-            embedding = await self.gemini_provider.embed_text(topic_name)
-            
-            # 2. Buscar no banco usando pgvector (distância de cosseno)
-            # No pgvector, <=> é a distância de cosseno. 1 - distância = similaridade.
-            stmt = select(
-                CanonicalTopic, 
-                (1 - CanonicalTopic.embedding.cosine_distance(embedding)).label("similarity")
-            ).order_by(
-                CanonicalTopic.embedding.cosine_distance(embedding)
-            ).limit(1)
-            
+            if embedding is None:
+                embedding = await self.ai_provider.embed_text(topic_name)
+
+            stmt = (
+                select(
+                    CanonicalTopic,
+                    (1 - CanonicalTopic.embedding.cosine_distance(embedding)).label("similarity"),
+                )
+                .order_by(CanonicalTopic.embedding.cosine_distance(embedding))
+                .limit(1)
+            )
+
             result = self.db.execute(stmt).first()
-            
             if result:
                 topic, similarity = result
                 if similarity >= threshold:
-                    logger.info(f"Match found: {topic.name} (Sim: {similarity:.4f})")
+                    logger.debug("Match: %s (sim=%.4f)", topic.name, similarity)
                     return topic, similarity
-                else:
-                    logger.info(f"No match above threshold {threshold} (Best: {similarity:.4f})")
-            
+                logger.debug("No match above %.2f (best=%.4f)", threshold, similarity)
+
             return None, 0.0
-            
-        except Exception as e:
-            logger.error(f"Error during canonicalization: {e}")
+
+        except Exception as exc:
+            logger.error("Canonicalization error for '%s': %s", topic_name[:60], exc)
             return None, 0.0
 
     async def add_canonical_topic(self, name: str, area: Optional[str] = None) -> CanonicalTopic:
         """Adiciona um novo tópico canônico ao banco."""
-        embedding = await self.gemini_provider.embed_text(name)
+        embedding = await self.ai_provider.embed_text(name)
         
         new_topic = CanonicalTopic(
             name=name,

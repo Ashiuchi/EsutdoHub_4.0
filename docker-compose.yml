@@ -14,7 +14,7 @@ services:
     build: ./backend
     volumes:
       - ./backend:/app
-      # - K:/estudohub_storage:/storage_k
+      - /mnt/k/estudohub_storage:/storage_k
       - ./storage:/app/storage
     ports:
       - "8000:8000"
@@ -64,13 +64,14 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
       - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Z3Jvd24tbGl6YXJkLTMuY2xlcmsuYWNjb3VudHMuZGV2JA
       - CLERK_SECRET_KEY=sk_test_HteRNduUHSeq3SKOBh4BSWjAnvNitXVF36xUbVWsZH
+      - WATCHPACK_POLLING=true
 
   moenda:
     build: ./backend
     command: python mass_ingestion_industrial.py
     volumes:
       - ./backend:/app
-      # - K:/estudohub_storage:/storage_k
+      - /mnt/k/estudohub_storage:/storage_k
       - ./storage:/app/storage
     environment:
       - DATABASE_URL=postgresql://estudohub_admin:estudohub_pass@db:5432/estudohub
@@ -88,7 +89,7 @@ services:
       context: ./backend/scripts
       dockerfile: Dockerfile.pescador
     volumes:
-      # - K:/estudohub_storage:/storage_k
+      - /mnt/k/estudohub_storage:/storage_k
       - ./storage:/app/storage
     restart: unless-stopped
 

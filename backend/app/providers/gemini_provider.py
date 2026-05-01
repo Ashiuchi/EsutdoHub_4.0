@@ -67,8 +67,13 @@ class GeminiProvider(BaseLLMProvider):
             logger.error(f"GeminiProvider: Validation failed - {e}")
             raise
 
-    async def embed_text(self, text: str, model_name: str = "models/text-embedding-004") -> list[float]:
-        """Generate embeddings using Gemini"""
+    async def embed_text(
+        self,
+        text: str,
+        model_name: str = "models/gemini-embedding-001",
+        output_dimensionality: int = 768,
+    ) -> list[float]:
+        """Generate embeddings using Gemini (768-d by default to match Vector(768) column)."""
         if not self.api_key:
             raise ConnectionError("GeminiProvider not configured - missing API key")
 
@@ -80,7 +85,8 @@ class GeminiProvider(BaseLLMProvider):
                     lambda: genai.embed_content(
                         model=model_name,
                         content=text,
-                        task_type="retrieval_query"
+                        task_type="retrieval_query",
+                        output_dimensionality=output_dimensionality,
                     )
                 ),
                 timeout=self.timeout

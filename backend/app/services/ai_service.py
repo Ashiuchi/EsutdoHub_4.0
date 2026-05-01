@@ -1,7 +1,8 @@
 import asyncio
 import logging
+import uuid
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from app.core.config import settings
 from app.core.logging_streamer import log_streamer
@@ -21,6 +22,9 @@ from app.services.cargo_vitaminizer import CargoVitaminizerAgent
 from app.services.cargo_auditor import CargoAuditorAgent
 from app.services.subjects_scout import SubjectsScoutAgent
 
+# type alias for enrichment map: topic_text -> (embedding, canonical_topic_id | None)
+_TopicEnrichments = Dict[str, Tuple[List[float], Optional[uuid.UUID]]]
+
 logger = logging.getLogger(__name__)
 
 CHUNK_THRESHOLD = 15_000
@@ -30,6 +34,9 @@ CHUNK_OVERLAP = 1_000
 
 class AIService:
     """Orquestra provider chain, pipeline de agentes e persistência incremental."""
+
+    _lock = asyncio.Lock()
+    _manual_active_count = 0
 
     def __init__(self) -> None:
         _key = settings.gemini_api_key
@@ -86,12 +93,30 @@ class AIService:
     #  Pipeline entry point                                                 #
     # ------------------------------------------------------------------ #
 
-    async def process_edital(self, content_hash: str, md_content: str, fingerprint: Optional[str] = None) -> dict:
-        """Orquestra CargoTitleAgent → CargoVitaminizerAgent → CargoAuditor → SubjectsScoutAgent.
-
-        Injeta a chain de providers em cada agente.
-        Retorna dict com 'edital' (EditalGeral) e 'cargos' (List[Cargo]).
+    async def process_edital(self, content_hash: str, md_content: str, fingerprint: Optional[str] = None, is_manual: bool = False) -> dict:
+        """Orquestra o pipeline de IA com sistema de prioridade.
+        
+        Processos manuais (upload) têm precedência. Processos em massa (Moenda) 
+        aguardam se houver uploads em andamento.
         """
+        if is_manual:
+            AIService._manual_active_count += 1
+            try:
+                async with AIService._lock:
+                    return await self._process_edital_core(content_hash, md_content, fingerprint)
+            finally:
+                AIService._manual_active_count -= 1
+        else:
+            # Moenda Industrial / Massa
+            while AIService._manual_active_count > 0:
+                logger.info("Moenda [%s]: Aguardando conclusão de processos manuais prioritários...", content_hash[:8])
+                await asyncio.sleep(5)
+            
+            async with AIService._lock:
+                return await self._process_edital_core(content_hash, md_content, fingerprint)
+
+    async def _process_edital_core(self, content_hash: str, md_content: str, fingerprint: Optional[str] = None) -> dict:
+        """Lógica interna original de processamento."""
         chain = self._get_provider_chain()
         logger.info(
             "process_edital [%s]: chain=[%s] fingerprint=[%s]",
@@ -147,12 +172,19 @@ class AIService:
         # Injetar o hash para persistência e vincular ao storage
         vitamin_data.edital_info.content_hash = content_hash
         vitamin_data.edital_info.fingerprint = fingerprint
-        
-        # Persistência no Banco de Dados
+
+        # Enriquecer tópicos com embeddings + canonical IDs antes de persistir
         all_cargos_to_persist = cargos_com_materias + quarantined
+        topic_enrichments = await self._enrich_topics(all_cargos_to_persist)
+
+        # Persistência no Banco de Dados
         edital_db_id = await self._create_edital_db(vitamin_data.edital_info)
         if edital_db_id:
-            await self._persist_and_broadcast(edital_db_id, all_cargos_to_persist, set(), cargo_contexts=cargo_contexts)
+            await self._persist_and_broadcast(
+                edital_db_id, all_cargos_to_persist, set(),
+                cargo_contexts=cargo_contexts,
+                topic_enrichments=topic_enrichments,
+            )
 
         return {"edital": vitamin_data.edital_info, "cargos": all_cargos_to_persist, "id": edital_db_id}
 
@@ -228,6 +260,55 @@ class AIService:
         return []
 
     # ------------------------------------------------------------------ #
+    #  Topic enrichment (embed + canonicalize)                             #
+    # ------------------------------------------------------------------ #
+
+    async def _enrich_topics(self, cargos: List[Cargo]) -> "_TopicEnrichments":
+        """Gera embeddings e canonical IDs para todos os tópicos únicos dos cargos.
+
+        Usa OllamaProvider (bge-m3 local, 1024d) para manter espaço vetorial único
+        com os dados retroativos. Semaphore(20) por ser chamada local sem rate-limit.
+        Retorna {} silenciosamente se o Ollama não estiver acessível.
+        """
+        from app.services.canonicalizer_service import CanonicalizerService
+
+        unique_topics: Set[str] = {
+            t
+            for cargo in cargos
+            for materia in cargo.materias
+            for t in materia.topicos
+            if t and t.strip()
+        }
+        if not unique_topics:
+            return {}
+
+        db = SessionLocal()
+        canonicalizer = CanonicalizerService(db, self.ollama_provider)
+        semaphore = asyncio.Semaphore(20)
+        enrichments: _TopicEnrichments = {}
+
+        async def _enrich_one(topic: str) -> None:
+            async with semaphore:
+                try:
+                    embedding = await self.ollama_provider.embed_text(topic)
+                    canonical, _ = await canonicalizer.canonicalize(topic, embedding=embedding)
+                    enrichments[topic] = (embedding, canonical.id if canonical else None)
+                except Exception as exc:
+                    logger.warning("Topic enrichment failed '%s…': %s", topic[:50], exc)
+
+        try:
+            await asyncio.gather(*[_enrich_one(t) for t in unique_topics])
+        finally:
+            db.close()
+
+        matched = sum(1 for _, cid in enrichments.values() if cid is not None)
+        logger.info(
+            "Topic enrichment: %d/%d enriched, %d canonical matches",
+            len(enrichments), len(unique_topics), matched,
+        )
+        return enrichments
+
+    # ------------------------------------------------------------------ #
     #  Database persistence                                                 #
     # ------------------------------------------------------------------ #
 
@@ -256,8 +337,15 @@ class AIService:
             db.close()
 
     @staticmethod
-    def _persist_cargos_sync(edital_db_id: int, cargos: List[Cargo], known_titulos: Set[str], cargo_contexts: Optional[dict] = None) -> List[dict]:
+    def _persist_cargos_sync(
+        edital_db_id: int,
+        cargos: List[Cargo],
+        known_titulos: Set[str],
+        cargo_contexts: Optional[dict] = None,
+        topic_enrichments: Optional["_TopicEnrichments"] = None,
+    ) -> List[dict]:
         saved: List[dict] = []
+        enrichments = topic_enrichments or {}
         db = SessionLocal()
         try:
             for cargo_schema in cargos:
@@ -281,7 +369,13 @@ class AIService:
                     db.add(materia_db)
                     db.flush()
                     for topico_str in materia_schema.topicos:
-                        db.add(db_models.Topico(materia_id=materia_db.id, conteudo=topico_str))
+                        emb, canon_id = enrichments.get(topico_str, (None, None))
+                        db.add(db_models.Topico(
+                            materia_id=materia_db.id,
+                            conteudo=topico_str,
+                            embedding=emb,
+                            canonical_topic_id=canon_id,
+                        ))
                 db.commit()
                 known_titulos.add(cargo_schema.titulo)
                 saved.append(cargo_schema.model_dump())
@@ -295,8 +389,18 @@ class AIService:
     async def _create_edital_db(self, result: EditalGeral) -> Optional[int]:
         return await asyncio.to_thread(self._create_edital_sync, result)
 
-    async def _persist_and_broadcast(self, edital_db_id: int, cargos: List[Cargo], known_titulos: Set[str], cargo_contexts: Optional[dict] = None) -> None:
-        saved = await asyncio.to_thread(self._persist_cargos_sync, edital_db_id, cargos, known_titulos, cargo_contexts)
+    async def _persist_and_broadcast(
+        self,
+        edital_db_id: int,
+        cargos: List[Cargo],
+        known_titulos: Set[str],
+        cargo_contexts: Optional[dict] = None,
+        topic_enrichments: Optional["_TopicEnrichments"] = None,
+    ) -> None:
+        saved = await asyncio.to_thread(
+            self._persist_cargos_sync,
+            edital_db_id, cargos, known_titulos, cargo_contexts, topic_enrichments,
+        )
         for cargo_dict in saved:
             log_streamer.broadcast({"type": "data", "payload": cargo_dict})
 

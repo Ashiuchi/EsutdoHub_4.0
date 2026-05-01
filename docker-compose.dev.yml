@@ -4,11 +4,11 @@ services:
     privileged: true
     ports:
       - "8205:8200"
+    volumes:
+      - ./vault/data:/vault/file
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "dev-root-token"
-      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
-      VAULT_DISABLE_MLOCK: "true"
-    command: server -dev
+      - 'VAULT_LOCAL_CONFIG={"storage": {"file": {"path": "/vault/file"}}, "listener": {"tcp": {"address": "0.0.0.0:8200", "tls_disable": 1}}}'
+    command: server
 
   backend:
     build: ./backend
@@ -25,16 +25,17 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - VAULT_ADDR=http://vault:8200
-      - VAULT_TOKEN=dev-root-token
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
-      - CLERK_JWT_ISSUER=${CLERK_JWT_ISSUER}
+      - VAULT_TOKEN=hvs.AR9khDVMUZvGpE1mvwHUTP0I
+      - CLERK_SECRET_KEY=sk_test_HteRNduUHSeq3SKOBh4BSWjAnvNitXVF36xUbVWsZH
+      - CLERK_JWT_ISSUER=https://grown-lizard-3.clerk.accounts.dev
+      - CLERK_PUBLISHABLE_KEY=pk_test_Z3Jvd24tbGl6YXJkLTMuY2xlcmsuYWNjb3VudHMuZGV2JA
     depends_on:
       - db
       - ollama
       - vault
 
   db:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -58,6 +59,8 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Z3Jvd24tbGl6YXJkLTMuY2xlcmsuYWNjb3VudHMuZGV2JA
+      - CLERK_SECRET_KEY=sk_test_HteRNduUHSeq3SKOBh4BSWjAnvNitXVF36xUbVWsZH
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
 
@@ -75,7 +78,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - VAULT_ADDR=http://vault:8200
-      - VAULT_TOKEN=dev-root-token
+      - VAULT_TOKEN=hvs.AR9khDVMUZvGpE1mvwHUTP0I
     depends_on:
       - db
       - ollama

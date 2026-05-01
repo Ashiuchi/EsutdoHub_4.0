@@ -23,7 +23,7 @@ class CanonicalTopic(Base):
     name = Column(String(255), nullable=False, index=True)
     area = Column(String(255), nullable=True)
     if Vector:
-        embedding = Column(Vector(768), nullable=False)
+        embedding = Column(Vector(1024), nullable=False)
     else:
         embedding = Column(Text, nullable=False) # Fallback para evitar erro de inicialização
 
@@ -110,9 +110,21 @@ class Topico(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     materia_id = Column(UUID(as_uuid=True), ForeignKey("materias.id", ondelete="CASCADE"), nullable=False, index=True)
+    canonical_topic_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("canonical_topics.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     conteudo = Column(Text, nullable=False)
 
+    if Vector:
+        embedding = Column(Vector(1024), nullable=True)
+    else:
+        embedding = Column(Text, nullable=True)
+
     materia = relationship("Materia", back_populates="topicos")
+    canonical_topic = relationship("CanonicalTopic")
 
 
 class Documento(Base):

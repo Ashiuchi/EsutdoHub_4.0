@@ -1,7 +1,7 @@
 import logging
 import aiohttp
 import asyncio
-from typing import Type, TypeVar
+from typing import List, Optional, Type, TypeVar
 from pydantic import BaseModel
 
 from .base_provider import BaseLLMProvider
@@ -10,15 +10,47 @@ from app.core.config import settings
 T = TypeVar('T', bound=BaseModel)
 logger = logging.getLogger(__name__)
 
+EMBED_MODEL = "bge-m3"
+
 
 class OllamaProvider(BaseLLMProvider):
     """Local Ollama LLM provider"""
 
     def __init__(self, base_url: str = None, model: str = "llama3.1:8b", timeout: int = None):
-        self.base_url = base_url or settings.ollama_url
+        self.base_url = (base_url or settings.ollama_url).rstrip("/")
         self.model = model
         self.timeout = timeout or settings.ollama_timeout
         logger.info(f"OllamaProvider initialized: {self.base_url}, model={self.model}, timeout={self.timeout}s")
+
+    async def embed_text(
+        self,
+        text: str,
+        model_name: str = EMBED_MODEL,
+    ) -> List[float]:
+        """Gera embedding via Ollama /api/embeddings (nomic-embed-text → 768d)."""
+        if not text or not text.strip():
+            raise ValueError("embed_text: texto vazio")
+
+        url = f"{self.base_url}/api/embeddings"
+        payload = {"model": model_name, "prompt": text}
+
+        try:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=120)
+            ) as session:
+                async with session.post(url, json=payload) as response:
+                    if response.status != 200:
+                        body = await response.text()
+                        raise ConnectionError(
+                            f"Ollama embed HTTP {response.status}: {body[:200]}"
+                        )
+                    data = await response.json()
+                    embedding: List[float] = data["embedding"]
+                    return embedding
+        except aiohttp.ClientConnectorError as exc:
+            raise ConnectionError(f"Ollama não acessível em {self.base_url}: {exc}") from exc
+        except aiohttp.ClientError as exc:
+            raise ConnectionError(f"Ollama embed falhou: {exc}") from exc
 
     async def generate_json(self, prompt: str, schema: Type[T]) -> T:
         """Generate JSON response from Ollama local model"""

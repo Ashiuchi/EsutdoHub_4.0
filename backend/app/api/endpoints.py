@@ -91,7 +91,7 @@ async def _process_edital_task(content_hash: str, temp_path: str):
         # 5. Orquestração de IA (CargoTitle → Vitaminizer → SubjectsScout)
         _broadcast_log(content_hash, "Iniciando inteligência artificial (Pipeline Agnostico)…")
         # Usamos main_md (enxuto com marcadores) para ancoragem
-        result = await ai_service.process_edital(content_hash, result_data.main_md, fingerprint=fingerprint)
+        result = await ai_service.process_edital(content_hash, result_data.main_md, fingerprint=fingerprint, is_manual=True)
 
 
         # 5. Notificar via SSE (broadcast de dados final)
@@ -153,6 +153,37 @@ async def upload_edital(background_tasks: BackgroundTasks, file: UploadFile = Fi
         total_links=0,
         total_chars=0
     )
+
+
+@router.get("/editais/list")
+async def list_editais_navigation():
+    """Retorna lista simplificada para navegação lateral (Cockpit)."""
+    db = SessionLocal()
+    try:
+        from sqlalchemy import exists, select
+        # Subquery para checar se existe algum cargo em quarentena para este edital
+        query = db.query(
+            models.Edital.id,
+            models.Edital.orgao,
+            models.Edital.created_at
+        ).order_by(models.Edital.orgao.asc())
+        
+        editais = query.all()
+        result = []
+        for e in editais:
+            has_quarantine = db.query(exists().where(
+                (models.Cargo.edital_id == e.id) & (models.Cargo.status == "quarentena")
+            )).scalar()
+            
+            result.append({
+                "id": str(e.id),
+                "orgao": e.orgao,
+                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "has_quarantine": bool(has_quarantine)
+            })
+        return result
+    finally:
+        db.close()
 
 
 @router.get("/cockpit/stream")
@@ -225,6 +256,7 @@ async def list_editais():
             }
             for c in e.cargos:
                 cargo_dict = {
+                    "id": str(c.id),
                     "titulo": c.titulo,
                     "salario": c.salario,
                     "escolaridade": c.escolaridade,
@@ -240,10 +272,93 @@ async def list_editais():
                     })
                 edital_dict["cargos"].append(cargo_dict)
             result.append(edital_dict)
-            
+
         return result
     finally:
         db.close()
+
+@router.get("/editais/{id}")
+async def get_edital(id: uuid.UUID):
+    """Retorna um edital completo pelo ID."""
+    db = SessionLocal()
+    try:
+        from sqlalchemy.orm import joinedload
+        e = db.query(models.Edital).options(
+            joinedload(models.Edital.cargos).joinedload(models.Cargo.materias).joinedload(models.Materia.topicos)
+        ).filter(models.Edital.id == id).first()
+        
+        if not e:
+            throw_exc = HTTPException(status_code=404, detail="Edital não encontrado")
+            raise throw_exc
+
+        edital_dict = {
+            "id": str(e.id),
+            "title": e.title or e.orgao,
+            "orgao": e.orgao,
+            "banca": e.banca,
+            "published_at": e.published_at,
+            "inscription_start": e.inscription_start,
+            "inscription_end": e.inscription_end,
+            "data_prova": e.data_prova,
+            "status": e.status,
+            "fingerprint": e.fingerprint,
+            "content_hash": e.content_hash,
+            "cargos": []
+        }
+        for c in e.cargos:
+            cargo_dict = {
+                "id": str(c.id),
+                "titulo": c.titulo,
+                "salario": c.salario,
+                "escolaridade": c.escolaridade,
+                "vagas_total": c.vagas_total,
+                "status": c.status,
+                "anchor_text": c.anchor_text,
+                "materias": []
+            }
+            for m in c.materias:
+                cargo_dict["materias"].append({
+                    "nome": m.nome,
+                    "topicos": [t.conteudo for t in m.topicos]
+                })
+            edital_dict["cargos"].append(cargo_dict)
+        return edital_dict
+    finally:
+        db.close()
+
+
+@router.patch("/cargos/{id}")
+async def update_cargo(id: uuid.UUID, body: dict):
+    """Atualiza status e/ou titulo de um cargo."""
+    db = SessionLocal()
+    try:
+        cargo = db.query(models.Cargo).filter(models.Cargo.id == id).first()
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo não encontrado")
+        if "status" in body:
+            cargo.status = body["status"]
+        if "titulo" in body:
+            cargo.titulo = body["titulo"]
+        db.commit()
+        db.refresh(cargo)
+        return {"id": str(cargo.id), "titulo": cargo.titulo, "status": cargo.status}
+    finally:
+        db.close()
+
+
+@router.delete("/cargos/{id}", status_code=204)
+async def delete_cargo(id: uuid.UUID):
+    """Exclui um cargo e todos os seus dependentes (cascade)."""
+    db = SessionLocal()
+    try:
+        cargo = db.query(models.Cargo).filter(models.Cargo.id == id).first()
+        if not cargo:
+            raise HTTPException(status_code=404, detail="Cargo não encontrado")
+        db.delete(cargo)
+        db.commit()
+    finally:
+        db.close()
+
 
 @router.get("/stats")
 async def get_stats():

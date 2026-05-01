@@ -31,11 +31,19 @@ out/
 Thumbs.db
 
 # Vault
+# Vault Data
+vault/data/
+vault/file/
 .vault_keys.txt
-vault/data/*
-!vault/data/.gitkeep
 
-# Jenkins
+# Local Tool Configs
+.claude/
+.gemini/
+.antigravity/
+.env.local
+frontend/.env.local
+storage_k/
+
+# Jenkins & Storage
 jenkins_data/
-storage/
 storage/
