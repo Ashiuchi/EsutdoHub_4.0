@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 # Configurações do Vault
 VAULT_URL = "http://vault:8200"  # Usando nome do serviço no docker network
-VAULT_TOKEN = "hvs.JXyJwRHeCm4v2iZHd8KOG9Kh"
+VAULT_TOKEN = os.getenv("VAULT_TOKEN")
 
 def migrate_to_vault():
     load_dotenv(override=True)
