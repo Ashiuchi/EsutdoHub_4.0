@@ -46,7 +46,7 @@ const AVATAR_PRESETS = [
   { id: "bottts",     name: "Robôs",        url: "https://api.dicebear.com/7.x/bottts/svg?seed=" },
   { id: "big-smile",  name: "Pets/Bichos",  url: "https://api.dicebear.com/7.x/big-smile/svg?seed=" },
   { id: "adventurer", name: "Aventureiros", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=" },
-];
+] as const;
 
 function isImageUrl(value: string) {
   return /^https?:\/\//.test(value) || value.startsWith("/");
@@ -349,6 +349,7 @@ export default function PerfilDashboard() {
       console.error("Erro no upload do avatar:", err);
     } finally {
       setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -741,7 +742,7 @@ export default function PerfilDashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowAvatarModal(false)}
+              onClick={() => !uploadingAvatar && setShowAvatarModal(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div
@@ -754,8 +755,10 @@ export default function PerfilDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-white">Personalizar Perfil</h3>
                 <button
-                  onClick={() => setShowAvatarModal(false)}
+                  type="button"
+                  onClick={() => !uploadingAvatar && setShowAvatarModal(false)}
                   className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Fechar"
                 >
                   <X size={18} />
                 </button>
@@ -772,6 +775,7 @@ export default function PerfilDashboard() {
 
               {/* Hero Upload Zone */}
               <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
                 className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-[#007F8E]/60 hover:bg-[#007F8E]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
@@ -799,11 +803,12 @@ export default function PerfilDashboard() {
               </div>
 
               {/* Presets Grid — scrollable */}
-              <div className="flex-1 min-h-0 max-h-[70vh] overflow-y-auto pr-1">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1">
                 <div className="grid grid-cols-2 gap-3">
                   {AVATAR_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
+                      type="button"
                       onClick={() => handlePresetAvatar(preset.url)}
                       disabled={uploadingAvatar}
                       className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#007F8E]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
