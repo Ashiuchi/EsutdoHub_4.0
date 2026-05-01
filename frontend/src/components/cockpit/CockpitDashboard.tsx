@@ -283,7 +283,7 @@ export default function CockpitDashboard() {
   return (
     <div className="flex flex-col h-screen bg-transparent text-[var(--text-offwhite)] overflow-hidden">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 bg-[var(--background)]/50 backdrop-blur-sm shrink-0 border-b border-[var(--nav-border)]">
+      <header className="flex items-center justify-between px-6 py-3 bg-[var(--background)]/50 backdrop-blur-sm shrink-0 border-seamless-b">
         <div className="flex items-center gap-3">
           <span className="text-[var(--primary-teal)] font-mono text-sm terminal-glow">▶</span>
           <h1 className="font-semibold text-[var(--text-offwhite)] tracking-tight">
@@ -319,14 +319,14 @@ export default function CockpitDashboard() {
         <EditalSelector onSelect={handleSelectEdital} activeId={activeEditalId} />
 
         {/* Left panel — Grid */}
-        <aside className="flex flex-col flex-1 overflow-hidden glass border-r border-[var(--nav-border)]">
+        <aside className="flex flex-col flex-1 overflow-hidden glass border-seamless-r">
           <UploadPanel
             status={procStatus}
             currentFile={currentFile}
             onUpload={handleUpload}
           />
           
-          <div className="px-6 py-4 bg-[var(--bg-graphite)]/30 flex items-center justify-between border-b border-[var(--nav-border)]">
+          <div className="px-6 py-4 bg-[var(--bg-graphite)]/30 flex items-center justify-between border-seamless-b">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest">Órgão</span>
@@ -357,7 +357,7 @@ export default function CockpitDashboard() {
 
         {/* Right panel — Terminal */}
         <main className="flex flex-col w-[380px] shrink-0 overflow-hidden glass">
-          <div className="p-4 bg-[var(--bg-graphite)]/50 shrink-0 border-b border-[var(--nav-border)]">
+          <div className="p-4 bg-[var(--bg-graphite)]/50 shrink-0 border-seamless-b">
              <div className="flex items-center justify-between mb-3">
                <h3 className="text-[10px] font-mono text-[var(--text-offwhite)]/40 uppercase tracking-widest flex items-center gap-2">
                   <span className="text-[var(--primary-teal)] animate-pulse">🧬</span> DNA 26 Monitor
@@ -372,7 +372,7 @@ export default function CockpitDashboard() {
              {selectedCargo ? (
                <CargoDNAGrid cargo={selectedCargo} edital={edital} />
              ) : (
-               <div className="h-24 flex items-center justify-center border border-dashed border-[var(--nav-border)] rounded-lg">
+               <div className="h-24 flex items-center justify-center border border-dashed border-seamless-b rounded-lg">
                  <p className="text-[10px] text-[var(--text-offwhite)]/20 font-mono italic text-center px-4">
                    Selecione um cargo para monitorar o DNA
                  </p>
@@ -380,7 +380,7 @@ export default function CockpitDashboard() {
              )}
           </div>
 
-          <div className="p-3 bg-[var(--primary-teal)]/5 border-b border-[var(--nav-border)]">
+          <div className="p-3 bg-[var(--primary-teal)]/5 border-seamless-b">
              <h3 className="text-[10px] font-mono text-[var(--primary-teal)]/70 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--primary-teal)] opacity-75"></span>

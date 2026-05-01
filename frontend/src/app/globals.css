@@ -24,7 +24,7 @@ html.light {
   /* Glass / sidebar */
   --glass-bg: rgba(45, 45, 45, 0.45);
   --glass-border-color: rgba(224, 224, 224, 0.08);
-  --nav-border: rgba(224, 224, 224, 0.06);
+  --nav-border: rgba(224, 224, 224, 0.04);
   --nav-hover-bg: rgba(255, 255, 255, 0.06);
 
   /* Clerk overrides */
@@ -44,7 +44,7 @@ html.light {
 
   --glass-bg: rgba(248, 250, 252, 0.88);
   --glass-border-color: rgba(15, 23, 42, 0.10);
-  --nav-border: rgba(15, 23, 42, 0.10);
+  --nav-border: rgba(15, 23, 42, 0.05);
   --nav-hover-bg: rgba(0, 0, 0, 0.05);
 
   --clerk-bg: #f1f5f9;
@@ -79,6 +79,16 @@ body {
   -webkit-backdrop-filter: blur(12px);
   background: var(--glass-bg);
   border: 0.5px solid var(--glass-border-color);
+}
+
+.border-seamless-b {
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(to right, transparent, var(--nav-border), transparent) 1;
+}
+
+.border-seamless-r {
+  border-right: 1px solid transparent;
+  border-image: linear-gradient(to bottom, transparent, var(--nav-border), transparent) 1;
 }
 
 /* Gradient veil: tinted from the page background colour */
