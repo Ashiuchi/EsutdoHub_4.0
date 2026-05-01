@@ -83,11 +83,9 @@ body {
 
 /* Gradient veil: tinted from the page background colour */
 .hero-gradient {
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.18) 0%,
-    transparent 60%
-  );
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.18) 0%,
+      transparent 60%);
 }
 
 /* ── Terminal scanline effect ─────────────────────────────────────── */
@@ -103,20 +101,23 @@ body {
   left: 0;
   right: 0;
   height: 120px;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(74, 222, 128, 0.04) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(74, 222, 128, 0.04) 50%,
+      transparent 100%);
   animation: scanline 4s linear infinite;
   pointer-events: none;
   z-index: 2;
 }
 
 @keyframes scanline {
-  0%   { top: -120px; }
-  100% { top: 100%; }
+  0% {
+    top: -120px;
+  }
+
+  100% {
+    top: 100%;
+  }
 }
 
 /* CRT horizontal line overlay */
@@ -124,13 +125,11 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 3px,
-    rgba(0, 0, 0, 0.08) 3px,
-    rgba(0, 0, 0, 0.08) 4px
-  );
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.08) 3px,
+      rgba(0, 0, 0, 0.08) 4px);
   pointer-events: none;
   z-index: 1;
 }
@@ -142,8 +141,15 @@ body {
 
 /* Blinking cursor */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 .cursor-blink {
@@ -152,20 +158,23 @@ body {
 
 /* Card shine on hover */
 @keyframes shimmer {
-  0%   { transform: translateX(-100%) skewX(-12deg); }
-  100% { transform: translateX(200%) skewX(-12deg); }
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+  }
+
+  100% {
+    transform: translateX(200%) skewX(-12deg);
+  }
 }
 
 .card-shimmer:hover::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.04) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.04) 50%,
+      transparent 100%);
   animation: shimmer 0.6s ease;
   pointer-events: none;
 }
@@ -175,9 +184,9 @@ body {
 .cl-rootBox .cl-navbar,
 [data-clerk-theme='light'] .cl-scrollBox,
 .cl-rootBox .cl-scrollBox {
-   background-color: rgba(255, 255, 255, 0.45) !important;
-   background: rgba(255, 255, 255, 0.45) !important;
-   backdrop-filter: blur(12px) !important;
+  background-color: rgba(255, 255, 255, 0.45) !important;
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
 }
 
 .cl-rootBox,
@@ -196,6 +205,47 @@ body {
 html.light .cl-navbarButton {
   color: #1e293b !important;
 }
+
 html.light .cl-navbarButton:hover {
   background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ── Select / Option legibility (cross-browser, dark default) ────── */
+select {
+  background-color: #09090b;
+  color: #e4e4e7;
+}
+
+select option {
+  background-color: #09090b;
+  color: #e4e4e7;
+}
+
+html.light select {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+html.light select option {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+/* ── Custom thin scrollbar (webkit) — teal accent ────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #007F8E;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #009aac;
 }
