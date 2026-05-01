@@ -1,49 +1,30 @@
-# Claude Code internals
-.claudeignore/
-
-# Environment — NUNCA commitar chaves reais
-.env
-.env.local
-.env.*.local
-.env.sonar
-
-# Debug artifacts
-backend/debug/
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-venv/
-.venv/
-.venv_pescador/
-
-# Node
+# Dependencies
 node_modules/
 .next/
 out/
+build/
+dist/
 
 # OS
 .DS_Store
 Thumbs.db
 
 # Vault
-# Vault Data
-vault/data/
-vault/file/
+vault/
 .vault_keys.txt
 
-# Local Tool Configs
+# Local Tool Configs & Env
 .claude/
 .gemini/
 .antigravity/
+.env
 .env.local
 frontend/.env.local
-storage_k/
 
-# Jenkins & Storage
-jenkins_data/
+# Storage & Infrastructure
 storage/
+storage_k/
+jenkins_data/
+postgres_data/
+ollama_data/
+sonar_data/
