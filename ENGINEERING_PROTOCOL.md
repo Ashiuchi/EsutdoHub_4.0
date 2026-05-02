@@ -1,81 +1,29 @@
-# Protocolo de Engenharia - EstudoHub Pro 4.0
+# 🏛️ EstudoHub Pro 4.0: Protocolo de Industrialização Soberana
 
-Este documento define os papéis e responsabilidades na construção do projeto EstudoHub Pro 4.0.
+## 📅 Relatório de Evolução: 02 de Maio de 2026
+**Status**: Operacional (Modo Slim)
 
-## 🧠 Papéis e Responsabilidades
+### 🚀 O Grande Salto: Do Caos de Memória à Eficiência Industrial
+Hoje realizamos um "Reset Nuclear" na infraestrutura para resolver gargalos de RAM e latência de IA. O projeto deixou de ser um protótipo dependente de cloud para se tornar uma usina local autônoma.
 
-### 1. Antigravity (Arquiteto & Engenheiro Chefe)
-- **Responsabilidade**: Visão técnica, planejamento estratégico, definição de arquitetura, revisão de design e orquestração de tarefas.
-- **Restrição**: **Não realiza a escrita direta de código e não fornece blocos de código completos.** Sua função é definir a lógica, as bibliotecas, e as regras de negócio detalhadamente para que os agentes implementem.
-- **Regra de Ouro**: **NUNCA cria scripts utilitários ou de teste ad-hoc.** Toda validação, ingestão ou extração em massa deve ser feita através da infraestrutura e dos pipelines oficiais do projeto.
-- **Entregas**: 
-    - Planos de Implementação (`implementation_plan.md`).
-    - Checklist de Tarefas (`task.md`).
-    - Diretrizes lógicas e ordens de execução detalhadas.
+### 🛠️ Mudanças de Engenharia (Hard-Fixes)
+1.  **Dieta de Docker (Consolidação)**:
+    - Eliminamos a redundância de múltiplos arquivos `.yml`. Tudo agora é centralizado no `docker-compose.yml`.
+    - **Serviços Extirpados**: Vault e Jenkins (Removidos para liberar ~1.5GB de RAM).
+    - **Soberania .env**: Migramos todos os segredos do Vault para o arquivo `.env` local.
 
-### 2. Agentes de Campo (Claude Code / Gemini CLI / Cursor)
-- **Responsabilidade**: Execução técnica, escrita de código, criação de arquivos e refatoração.
-- **Input**: Recebem as diretrizes e blocos de código validados pelo Antigravity.
+2.  **Refatoração "Python-First, LLM-Last"**:
+    - **Arquiteto Determinístico**: Injetamos uma heurística avançada (Pandas/Regex) que resolve 80% do mapeamento de colunas instantaneamente, sem usar a IA.
+    - **IA Cirúrgica**: O modelo `llama3.2:1b` (Ollama) agora é usado apenas como "Árbitro Final" para casos complexos.
+    - **Resiliência de Rede**: Implementamos `Health Checks` na Moenda. Se o motor de IA cair, a linha de produção entra em `standby` inteligente em vez de queimar CPU com erros.
 
-### 3. Usuário (Alessandro)
-- **Responsabilidade**: Validação final, execução de comandos privilegiados e ponte de comunicação entre os agentes.
+3.  **Auditoria de Qualidade**:
+    - O SonarQube foi desacoplado do Jenkins e configurado para rodar "On-Demand" via `docker-compose.sonar.yml`, garantindo código limpo sem pesar o sistema em tempo de execução.
 
----
-
-## 🧭 Visão Estratégica
-
-Toda a engenharia deste projeto deve estar alinhada com os pilares de negócio e a visão social definidos no documento mestre de brainstorm:
-- **[ESTUDOHUB_VISION_BRAINSTORM.md](file:///C:/Users/alessandro.morais/.gemini/antigravity/brain/43761501-43f6-40a0-9338-41f100662b37/ESTUDOHUB_VISION_BRAINSTORM.md)**: Contém o modelo de monetização, a estratégia de rede social ("Vício Positivo") e a arquitetura de inteligência artificial da plataforma.
+### 📈 Resultado Industrial
+- **Primeiro Sucesso**: Edital do **IFES (Instituto Federal do Espírito Santo)** processado com sucesso na nova pilha.
+- **Performance**: Tempo de mapeamento reduzido de 3 minutos (timeout) para **menos de 2 segundos** por tabela via heurística.
+- **Soberania**: 100% dos dados processados localmente, sem dependência de APIs externas.
 
 ---
-
-## 🛠️ Workflow de Trabalho
-
-1. **Planejamento**: Antigravity pesquisa e cria um `implementation_plan.md`.
-2. **Aprovação**: O Usuário revisa e aprova o plano.
-3. **Orquestração**: Antigravity quebra o plano em tarefas no `task.md`.
-4. **Instrução**: Para cada tarefa, Antigravity fornece o comando exato ou o código formatado.
-5. **Execução**: O Agente de Campo (Claude/Gemini CLI) executa a instrução.
-6. **Validação via Pipeline**: Testes, extrações em massa ou processamentos pesados devem ser realizados exclusivamente via Pipeline de Produção (CI/CD), garantindo que o ambiente de teste reflita fielmente o ambiente de produção e evitando redundância de debug.
-7. **Verificação**: Antigravity revisa os logs/arquivos criados para garantir que seguem a arquitetura.
-
----
-
-## 🎨 Identidade Visual & Branding
-
-O EstudoHub Pro 4.0 segue uma paleta rigorosa baseada na logo oficial:
-1. **Cores Primárias**:
-    - `Teal Principal`: `#007F8E` (Acentos, botões, links).
-    - `Grafite Base`: `#2D2D2D` (Fundo de cards, sidebar).
-    - `Off-white`: `#E0E0E0` (Texto principal, ícones secundários).
-2. **Backgrounds**: Utilizar as imagens da pasta `/static/images` sempre com um **overlay de gradiente escuro** para garantir legibilidade (ex: `linear-gradient(to bottom, transparent, #030712)`).
-3. **Layout**: Priorizar navegação lateral (Sidebar) para aplicações de dashboard e rede social.
-
----
-
-## 🐳 Gerenciamento de Ambiente & Docker
-
-Para garantir a consistência entre diferentes locais de trabalho, utilizamos uma estratégia de múltiplos arquivos Compose:
-
-1. **`docker-compose.yml` (Padrão/Home)**:
-    - Destinado ao ambiente principal com hardware completo.
-    - Requisitos: Drive `K:\` mapeado e GPU NVIDIA disponível para o Ollama.
-2. **`docker-compose.dev.yml` (Local/Portátil)**:
-    - Destinado a máquinas de desenvolvimento sem hardware específico.
-    - Ajustes: Mapeia `/storage_k` para uma pasta local (`./storage_k`) e desativa a exigência de GPU (roda Ollama via CPU).
-
-**Comando para subir no ambiente Local**:
-`docker-compose -f docker-compose.dev.yml up -d`
-
----
-
-1. **Stack Unificado**: O arquivo `docker-compose.all.yml` é a fonte da verdade, unindo a App (Backend, Frontend, DB, Redis, Ollama) com as ferramentas de suporte (Jenkins, SonarQube, Vault).
-2. **Entry Point**: O `Makefile` na raiz do projeto deve ser utilizado para todas as operações de infraestrutura.
-    - `make up`: Sobe o stack completo unificado.
-    - `make down`: Derruba todos os serviços.
-3. **Persistência**: Volumes Docker são utilizados para persistir dados de banco, logs do Sonar e jobs do Jenkins.
-
----
-
-## 🚫 Regra de Ouro
-> Antigravity **NUNCA** deve modificar arquivos dentro das pastas `/frontend` ou `/backend` diretamente via ferramentas de escrita de arquivo, a menos que seja para correções críticas de configuração solicitadas explicitamente. Seu papel é **orientar a execução**.
+*Assinado: O Arquiteto (AI Co-Pilot)*

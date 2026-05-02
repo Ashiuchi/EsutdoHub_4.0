@@ -43,7 +43,7 @@ class AIService:
         _key_preview = f"{_key[:4]}...{_key[-4:]}" if _key and len(_key) >= 8 else (_key or "None")
         logger.debug(f"AIService.__init__: settings.gemini_api_key = {_key_preview}")
 
-        self.ollama_provider = OllamaProvider(model="llama3.2:3b")
+        self.ollama_provider = OllamaProvider()
         self.groq_provider = GroqProvider()
         self.openrouter_provider = OpenRouterProvider()
         self.gemini_provider = GeminiProvider()
@@ -147,7 +147,7 @@ class AIService:
         cargos = await self.cargo_agent.hunt_titles(content_hash, chain)
         cargos = self._merge_seeds_into_cargos(seeds, cargos)
         
-        vitamin_data = await self.vitaminizer_agent.vitaminize(content_hash, cargos, chain, cargo_contexts=cargo_contexts)
+        vitamin_data = await self.vitaminizer_agent.vitaminize(content_hash, cargos, cargo_contexts=cargo_contexts)
 
         # Raio-X de qualidade: descarta ruído, separa aprovados de quarentena
         audit_results = self.cargo_auditor.audit(vitamin_data.cargos_vitaminados)

@@ -1,87 +1,97 @@
 services:
-  vault:
-    image: hashicorp/vault:1.15
-    privileged: true
-    ports:
-      - "8200:8200"
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "dev-root-token"
-      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
-      VAULT_DISABLE_MLOCK: "true"
-    command: server -dev
-
-  backend:
-    build: ./backend
-    volumes:
-      - ./backend:/app
-      - /mnt/k/estudohub_storage:/storage_k
-      - ./storage:/app/storage
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://estudohub_admin:estudohub_pass@db:5432/estudohub
-      - OLLAMA_HOST=http://ollama:11434
-      - VAULT_ADDR=http://vault:8200
-      - VAULT_TOKEN=dev-root-token
-    depends_on:
-      - db
-      - ollama
-      - vault
-
   db:
     image: pgvector/pgvector:pg16
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=estudohub_admin
-      - POSTGRES_PASSWORD=estudohub_pass
-      - POSTGRES_DB=estudohub
     ports:
       - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-estudohub_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-estudohub_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-estudohub}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
   ollama:
     image: ollama/ollama
-    volumes:
-      - ollama_data:/root/.ollama
     ports:
       - "11434:11434"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DEBUG: ${DEBUG:-false}
+      USE_LOCAL_LLM: ${USE_LOCAL_LLM:-true}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
+      OLLAMA_MODEL_CHEAP: ${OLLAMA_MODEL_CHEAP:-llama3.2:1b}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-600}
+      LLM_STRATEGY: ${LLM_STRATEGY:-local_first}
+      CLOUD_FALLBACK: ${CLOUD_FALLBACK:-true}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_JWT_ISSUER: ${CLERK_JWT_ISSUER}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}}
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS:-}
+    volumes:
+      - ./backend:/app
+      - ./storage_k:/storage_k
+      - ./storage:/app/storage
+    depends_on:
+      - db
+      - ollama
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
-      - WATCHPACK_POLLING=true
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_JWT_ISSUER: ${CLERK_JWT_ISSUER}
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
 
   moenda:
     build: ./backend
     command: python mass_ingestion_industrial.py
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      USE_LOCAL_LLM: ${USE_LOCAL_LLM:-true}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
+      OLLAMA_MODEL_CHEAP: ${OLLAMA_MODEL_CHEAP:-llama3.2:1b}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-600}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_JWT_ISSUER: ${CLERK_JWT_ISSUER}
     volumes:
       - ./backend:/app
-      - /mnt/k/estudohub_storage:/storage_k
+      - ./storage_k:/storage_k
       - ./storage:/app/storage
-    environment:
-      - DATABASE_URL=postgresql://estudohub_admin:estudohub_pass@db:5432/estudohub
-      - OLLAMA_HOST=http://ollama:11434
-      - VAULT_ADDR=http://vault:8200
-      - VAULT_TOKEN=dev-root-token
     depends_on:
       - db
       - ollama
-      - vault
     restart: unless-stopped
 
   pescador:
@@ -89,7 +99,7 @@ services:
       context: ./backend/scripts
       dockerfile: Dockerfile.pescador
     volumes:
-      - /mnt/k/estudohub_storage:/storage_k
+      - ./storage_k:/storage_k
       - ./storage:/app/storage
     restart: unless-stopped
 

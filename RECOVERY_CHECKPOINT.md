@@ -32,7 +32,7 @@ Para evitar duplicidades de fontes diferentes (Diário Oficial vs Banca) ou reti
 ## 4. Estado da Infraestrutura
 - **IA**: Ollama (Llama 3.2:3b local) + Groq (Llama 3.3-70b Cloud) + Gemini Pro (Elite Fallback).
 - **Banco de Dados**: PostgreSQL com colunas `content_hash` (binário) e `fingerprint` (DNA).
-- **WSL**: Jenkins e Sonar configurados no Drive C.
+- **WSL**: SonarQube configurado via Docker Compose (Independente).
 
 ## 5. Próximos Passos (Amanhã)
 1. **Verificar o Lote de Ouro**: Validar TRT, BB e os novos 3 da FGV, Quadrix e IBFC.

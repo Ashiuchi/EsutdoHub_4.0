@@ -3,11 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutDashboard, BookOpen, User, LogIn, LogOut, Sun, Moon } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useUser, useClerk, SignInButton } from "@clerk/nextjs";
-import { useTheme } from "next-themes";
-import { motion } from "framer-motion";
+import { Home, LayoutDashboard, BookOpen, User } from "lucide-react";
+import { useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
@@ -28,141 +25,21 @@ function Logo() {
   }
 
   return (
-    <Image
-      src="/static/logo_nav.svg"
-      alt="EstudoHub Pro"
-      width={250}
-      height={55}
-      priority
-      onError={() => setImgError(true)}
-    />
-  );
-}
-
-function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  // Before mount, assume dark to match server render
-  const isLight = mounted && resolvedTheme === "light";
-
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={() => setTheme(isLight ? "dark" : "light")}
-      className="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors"
-      style={{ color: "var(--text-offwhite)", opacity: 0.8 }}
-      onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
-    >
-      <span
-        className="transition-colors"
-        style={{ color: "var(--primary-teal)" }}
-      >
-        {isLight ? <Moon size={18} strokeWidth={1.75} /> : <Sun size={18} strokeWidth={1.75} />}
-      </span>
-      {isLight ? "Modo Escuro" : "Modo Claro"}
-    </motion.button>
-  );
-}
-
-function AuthFooter() {
-  const { isSignedIn, user, isLoaded } = useUser();
-  const { signOut } = useClerk();
-
-  if (!isLoaded) {
-    return (
-      <div
-        className="h-[60px] rounded-xl animate-pulse"
-        style={{ background: "rgba(255,255,255,0.04)" }}
+    <div className="flex justify-center w-full">
+      <Image
+        src="/static/logo_nav.svg"
+        alt="EstudoHub Pro"
+        width={180}
+        height={40}
+        priority
+        onError={() => setImgError(true)}
       />
-    );
-  }
-
-  if (isSignedIn) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        className="flex items-center gap-3 px-3 py-3 rounded-xl"
-        style={{
-          background: "rgba(0,127,142,0.10)",
-          border: "1px solid rgba(0,127,142,0.25)",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={user.imageUrl}
-          alt={user.fullName ?? "Perfil"}
-          width={36}
-          height={36}
-          className="w-9 h-9 rounded-full shrink-0"
-          style={{ boxShadow: "0 0 0 2px var(--primary-teal)" }}
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium leading-tight truncate" style={{ color: "var(--text-offwhite)" }}>
-            {user.firstName ?? user.username ?? "Usuário"}
-          </p>
-          <p className="text-[10px] font-medium" style={{ color: "var(--primary-teal)" }}>
-            Online
-          </p>
-        </div>
-        <motion.button
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => signOut()}
-          title="Sair"
-          className="shrink-0 transition-colors"
-          style={{ color: "var(--text-offwhite)", opacity: 0.4 }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#f87171";
-            e.currentTarget.style.opacity = "1";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--text-offwhite)";
-            e.currentTarget.style.opacity = "0.4";
-          }}
-        >
-          <LogOut size={16} strokeWidth={1.75} />
-        </motion.button>
-      </motion.div>
-    );
-  }
-
-  return (
-    <SignInButton mode="modal">
-      <motion.button
-        whileHover={{
-          scale: 1.02,
-          boxShadow: "0 0 18px rgba(0,127,142,0.30)",
-        }}
-        whileTap={{ scale: 0.97 }}
-        transition={{ type: "spring", stiffness: 320, damping: 22 }}
-        className="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors"
-        style={{
-          color: "var(--text-offwhite)",
-          border: "1px solid rgba(0,127,142,0.25)",
-        }}
-      >
-        <motion.span
-          whileHover={{ x: 3 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-        >
-          <LogIn size={18} strokeWidth={1.75} />
-        </motion.span>
-        Entrar
-      </motion.button>
-    </SignInButton>
+    </div>
   );
 }
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { isSignedIn, user, isLoaded } = useUser();
 
   return (
     <>
@@ -173,14 +50,14 @@ export default function Sidebar() {
       >
         {/* Logo */}
         <div
-          className="flex items-center px-2 py-5"
+          className="flex items-center px-4 py-8"
           style={{ borderBottom: "1px solid var(--nav-border)" }}
         >
           <Logo />
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active =
               pathname === href || (href !== "/" && pathname.startsWith(href));
@@ -202,17 +79,11 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Theme toggle */}
-        <div
-          className="px-3 pb-1"
-          style={{ borderTop: "1px solid var(--nav-border)" }}
-        >
-          <ThemeToggle />
-        </div>
-
-        {/* Auth footer */}
-        <div className="px-3 pb-4">
-          <AuthFooter />
+        {/* Clean Footer */}
+        <div className="px-6 py-8">
+          <p className="text-[10px] text-[var(--text-offwhite)]/20 uppercase tracking-widest font-bold text-center">
+            EstudoHub 4.0 Industrial
+          </p>
         </div>
       </aside>
 
@@ -224,7 +95,6 @@ export default function Sidebar() {
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href || (href !== "/" && pathname.startsWith(href));
-          const isProfileItem = href === "/perfil";
 
           return (
             <Link
@@ -237,17 +107,7 @@ export default function Sidebar() {
                   : "text-[var(--text-offwhite)]/60 hover:text-[var(--text-offwhite)]",
               ].join(" ")}
             >
-              {isProfileItem && isLoaded && isSignedIn && user.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.imageUrl}
-                  alt={user.fullName ?? "Perfil"}
-                  className="w-5 h-5 rounded-full"
-                  style={{ boxShadow: "0 0 0 1.5px var(--primary-teal)" }}
-                />
-              ) : (
-                <Icon size={20} strokeWidth={1.75} />
-              )}
+              <Icon size={20} strokeWidth={1.75} />
               {label}
             </Link>
           );

@@ -1,33 +1,29 @@
-import hvac
-import os
 import logging
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from typing import List, Optional
+from typing import Any, Optional
 
 
 logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
-    vault_addr: Optional[str] = None
-    vault_token: Optional[str] = None
-    
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
     nvidia_api_key: Optional[str] = None
 
-    # Clerk Auth — loaded from Vault first, then env
-    clerk_secret_key: Optional[str] = None     # sk_test_... (Clerk Backend API)
-    clerk_jwt_issuer: Optional[str] = None     # https://<instance>.clerk.accounts.dev
+    # Clerk Auth
+    clerk_secret_key: Optional[str] = None
+    clerk_jwt_issuer: Optional[str] = None
 
-    # Comma-separated Clerk user IDs treated as admins in dev (no Clerk dashboard required)
     admin_user_ids: str = ""
 
     database_url: str = "sqlite:///./dev.db"
     debug: bool = False
     use_local_llm: bool = True
     ollama_url: str = "http://ollama:11434"
+    ollama_model: str = "llama3.2:1b"
+    ollama_model_cheap: str = "llama3.2:1b"
     ollama_timeout: int = 600
     gemini_timeout: int = 15
     groq_timeout: int = 30
@@ -36,42 +32,7 @@ class Settings(BaseSettings):
 
     llm_strategy: str = "local_first"
     cloud_fallback: bool = True
-    allowed_origins: List[str] = ["http://localhost:3000"]
-
-    def __init__(self, **values):
-        super().__init__(**values)
-        # Try to load secrets from Vault if configured
-        if self.vault_addr and self.vault_token:
-            try:
-                client = hvac.Client(url=self.vault_addr, token=self.vault_token)
-                if client.is_authenticated():
-                    read_response = client.secrets.kv.v2.read_secret_version(
-                        path="estudohub",
-                        mount_point="kv-v2"
-                    )
-                    vault_secrets = read_response["data"]["data"]
-                    
-                    # Override with Vault secrets if they exist
-                    if "GEMINI_API_KEY" in vault_secrets:
-                        self.gemini_api_key = vault_secrets["GEMINI_API_KEY"]
-                    if "GROQ_API_KEY" in vault_secrets:
-                        self.groq_api_key = vault_secrets["GROQ_API_KEY"]
-                    if "OPENROUTER_API_KEY" in vault_secrets:
-                        self.openrouter_api_key = vault_secrets["OPENROUTER_API_KEY"]
-                    if "NVIDIA_API_KEY" in vault_secrets:
-                        self.nvidia_api_key = vault_secrets["NVIDIA_API_KEY"]
-                    if "DATABASE_URL" in vault_secrets:
-                        self.database_url = vault_secrets["DATABASE_URL"]
-                    if "CLERK_SECRET_KEY" in vault_secrets:
-                        self.clerk_secret_key = vault_secrets["CLERK_SECRET_KEY"]
-                    if "CLERK_JWT_ISSUER" in vault_secrets:
-                        self.clerk_jwt_issuer = vault_secrets["CLERK_JWT_ISSUER"]
-                    
-                    logger.info(f"✅ Successfully loaded secrets from Vault at {self.vault_addr}")
-                else:
-                    logger.error("❌ Vault authentication failed.")
-            except Exception as e:
-                logger.warning(f"⚠️ Could not connect to Vault, using environment variables: {e}")
+    allowed_origins: Any = ["http://localhost:3000"]
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
@@ -88,3 +49,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+logger.info("✅ Settings loaded from environment variables (Vault bypassed)")

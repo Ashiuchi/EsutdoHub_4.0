@@ -16,9 +16,9 @@ EMBED_MODEL = "bge-m3"
 class OllamaProvider(BaseLLMProvider):
     """Local Ollama LLM provider"""
 
-    def __init__(self, base_url: str = None, model: str = "llama3.1:8b", timeout: int = None):
+    def __init__(self, base_url: str = None, model: str = None, timeout: int = None):
         self.base_url = (base_url or settings.ollama_url).rstrip("/")
-        self.model = model
+        self.model = model or settings.ollama_model
         self.timeout = timeout or settings.ollama_timeout
         logger.info(f"OllamaProvider initialized: {self.base_url}, model={self.model}, timeout={self.timeout}s")
 

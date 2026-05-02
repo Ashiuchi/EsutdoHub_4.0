@@ -59,14 +59,14 @@ class CargoVitaminizerAgent:
     def __init__(self):
         self.semaphore = asyncio.Semaphore(5)
         self.gemini_provider = GeminiProvider()
-        self.ollama_provider = OllamaProvider(model="llama3.2:3b")
+        self.ollama_provider = OllamaProvider(model=settings.ollama_model_cheap)
 
     def _build_chain(self) -> List[BaseLLMProvider]:
-        """Gemini primeiro para poupar CPU local."""
+        """Ollama primeiro para soberania local."""
         chain: List[BaseLLMProvider] = []
+        chain.append(self.ollama_provider)
         if settings.gemini_api_key:
             chain.append(self.gemini_provider)
-        chain.append(self.ollama_provider)
         return chain
 
     async def _discover_structure(self, main_md: str, tables: List[str]) -> MappingDiscovery:

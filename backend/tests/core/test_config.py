@@ -1,5 +1,3 @@
-import pytest
-from unittest.mock import patch, MagicMock
 from app.core.config import Settings
 
 
@@ -30,44 +28,22 @@ def test_parse_origins_from_list():
     assert s.allowed_origins == ["http://localhost:3000"]
 
 
-def test_vault_skipped_when_addr_not_set():
-    s = Settings(vault_addr=None, vault_token=None)
-    # Should not attempt Vault connection
-    assert s.vault_addr is None
+def test_settings_loads_from_environment(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "env-gemini-key")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://env-db/test")
+
+    s = Settings()
+
+    assert s.gemini_api_key == "env-gemini-key"
+    assert s.database_url == "postgresql://env-db/test"
 
 
-def test_vault_loads_gemini_key():
-    mock_client = MagicMock()
-    mock_client.is_authenticated.return_value = True
-    mock_client.secrets.kv.v2.read_secret_version.return_value = {
-        "data": {"data": {"GEMINI_API_KEY": "vault-gemini-key"}}
-    }
-    with patch('hvac.Client', return_value=mock_client):
-        s = Settings(vault_addr="http://vault:8200", vault_token="test-token")
-        assert s.gemini_api_key == "vault-gemini-key"
+def test_settings_ignores_legacy_vault_values(monkeypatch):
+    monkeypatch.setenv("VAULT_ADDR", "http://vault:8200")
+    monkeypatch.setenv("VAULT_TOKEN", "legacy-token")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://env-db/test")
 
+    s = Settings()
 
-def test_vault_loads_database_url():
-    mock_client = MagicMock()
-    mock_client.is_authenticated.return_value = True
-    mock_client.secrets.kv.v2.read_secret_version.return_value = {
-        "data": {"data": {"DATABASE_URL": "postgresql://vault-db/test"}}
-    }
-    with patch('hvac.Client', return_value=mock_client):
-        s = Settings(vault_addr="http://vault:8200", vault_token="test-token")
-        assert s.database_url == "postgresql://vault-db/test"
-
-
-def test_vault_auth_failure_falls_back_gracefully():
-    mock_client = MagicMock()
-    mock_client.is_authenticated.return_value = False
-    with patch('hvac.Client', return_value=mock_client):
-        # Should not raise, just skip Vault
-        s = Settings(vault_addr="http://vault:8200", vault_token="bad-token")
-        assert s is not None
-
-
-def test_vault_connection_error_falls_back_gracefully():
-    with patch('hvac.Client', side_effect=Exception("Connection refused")):
-        s = Settings(vault_addr="http://vault:8200", vault_token="test-token")
-        assert s is not None
+    assert s.database_url == "postgresql://env-db/test"
+    assert not hasattr(s, "vault_addr")

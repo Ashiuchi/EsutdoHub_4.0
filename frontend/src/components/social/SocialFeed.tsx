@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Send, ImageIcon } from "lucide-react";
 import PostCard, { type Post } from "./PostCard";
+import MagicDropzone from "@/components/social/MagicDropzone";
 
 const MOCK_POSTS: Post[] = [
   {
@@ -63,7 +64,9 @@ export default function SocialFeed() {
   if (!isMounted) return null;
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
+      <MagicDropzone />
+
       {/* Compose box */}
       <div className="glass rounded-xl p-4 space-y-3">
         <textarea

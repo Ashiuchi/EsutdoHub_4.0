@@ -3,8 +3,8 @@
 import type { CSSProperties } from "react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, ShieldCheck, Camera, Check, Loader2, Target, Clock, Star, LogOut, ChevronRight, Search, Upload, X, Lock, FileText } from "lucide-react";
-import { useUser, SignInButton, useClerk, UserProfile } from "@clerk/nextjs";
+import { Mail, ShieldCheck, Camera, Check, Loader2, Target, Clock, Star, LogOut, ChevronRight, Search, Upload, X, Lock, FileText, ArrowLeft } from "lucide-react";
+import { useUser, SignInButton, useClerk } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { dark } from "@clerk/themes";
 import ThemeBackground from "@/components/ThemeBackground";
@@ -41,11 +41,16 @@ const BANNER_PRESETS = [
 ] as const;
 
 const AVATAR_PRESETS = [
-  { id: "avataaars",  name: "Humanos",      url: "https://api.dicebear.com/7.x/avataaars/svg?seed=" },
-  { id: "pixel-art",  name: "Pixel Art",    url: "https://api.dicebear.com/7.x/pixel-art/svg?seed=" },
-  { id: "bottts",     name: "Robôs",        url: "https://api.dicebear.com/7.x/bottts/svg?seed=" },
-  { id: "big-smile",  name: "Pets/Bichos",  url: "https://api.dicebear.com/7.x/big-smile/svg?seed=" },
-  { id: "adventurer", name: "Aventureiros", url: "https://api.dicebear.com/7.x/adventurer/svg?seed=" },
+  { id: "avataaars",  name: "Humanos",      url: "https://api.dicebear.com/7.x/avataaars/png?seed=" },
+  { id: "pixel-art",  name: "Pixel Art",    url: "https://api.dicebear.com/7.x/pixel-art/png?seed=" },
+  { id: "bottts",     name: "Robôs",        url: "https://api.dicebear.com/7.x/bottts/png?seed=" },
+  { id: "big-smile",  name: "Pets/Bichos",  url: "https://api.dicebear.com/7.x/big-smile/png?seed=" },
+  { id: "adventurer", name: "Aventureiros", url: "https://api.dicebear.com/7.x/adventurer/png?seed=" },
+  { id: "lorelei",    name: "Anime",        url: "https://api.dicebear.com/7.x/lorelei/png?seed=" },
+  { id: "miniavs",    name: "Miniaturas",   url: "https://api.dicebear.com/7.x/miniavs/png?seed=" },
+  { id: "personas",   name: "Personas",     url: "https://api.dicebear.com/7.x/personas/png?seed=" },
+  { id: "open-peeps", name: "Desenho",      url: "https://api.dicebear.com/7.x/open-peeps/png?seed=" },
+  { id: "shapes",     name: "Abstrato",     url: "https://api.dicebear.com/7.x/shapes/png?seed=" },
 ] as const;
 
 function isImageUrl(value: string) {
@@ -218,7 +223,7 @@ function RadarChart({ materias, affinities }: { materias: string[]; affinities: 
 
 export default function PerfilDashboard() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const { signOut, openUserProfile } = useClerk();
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -241,6 +246,10 @@ export default function PerfilDashboard() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Avatar Selection States
+  const [selectedCategory, setSelectedCategory] = useState<typeof AVATAR_PRESETS[number] | null>(null);
+  const [previewSeeds, setPreviewSeeds] = useState<string[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -353,17 +362,27 @@ export default function PerfilDashboard() {
     }
   };
 
-  const handlePresetAvatar = async (baseUrl: string) => {
+  const handlePresetAvatar = async (category: typeof AVATAR_PRESETS[number], seed?: string) => {
+    if (!seed) {
+      // First click: Select category and generate 8 seeds
+      setSelectedCategory(category);
+      const seeds = Array.from({ length: 8 }, () => Math.random().toString(36).substring(7));
+      setPreviewSeeds(seeds);
+      return;
+    }
+
+    // Second click: Pick a specific seed
     setUploadingAvatar(true);
     try {
-      const seed = Math.random().toString(36).substring(7);
-      const imageUrl = `${baseUrl}${seed}`;
+      const imageUrl = `${category.url}${seed}`;
       const response = await fetch(imageUrl);
       const blob = await response.blob();
-      const file = new File([blob], "avatar.svg", { type: "image/svg+xml" });
+      const file = new File([blob], "avatar.png", { type: "image/png" });
       
       await user?.setProfileImage({ file });
       setShowAvatarModal(false);
+      setSelectedCategory(null);
+      setPreviewSeeds([]);
     } catch (err) {
       console.error("Erro ao aplicar preset:", err);
     } finally {
@@ -717,9 +736,30 @@ export default function PerfilDashboard() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-xl overflow-hidden border border-white/5 bg-[var(--background)]">
-                <UserProfile path="/perfil" routing="path" appearance={clerkAppearance} />
+              <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5 space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+                    <img src={user?.imageUrl} alt={displayName} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-bold text-[var(--text-offwhite)] truncate">{displayName}</h3>
+                    <p className="text-xs text-[var(--text-offwhite)]/40 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 w-fit">
+                  <ShieldCheck size={14} className="text-emerald-500" />
+                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">E-mail Verificado</span>
+                </div>
+
+                <button 
+                  onClick={() => openUserProfile()}
+                  className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/70 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
+                >
+                  Gerenciar Conta
+                </button>
               </div>
+              
               <button 
                 onClick={() => signOut()}
                 className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-colors"
@@ -804,24 +844,64 @@ export default function PerfilDashboard() {
 
               {/* Presets Grid — scrollable */}
               <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-                <div className="grid grid-cols-2 gap-3">
-                  {AVATAR_PRESETS.map((preset) => (
+                {!selectedCategory ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {AVATAR_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handlePresetAvatar(preset)}
+                        disabled={uploadingAvatar}
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#007F8E]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <img
+                          src={`${preset.url}${preset.id}`}
+                          alt={preset.name}
+                          className="w-10 h-10 rounded-lg bg-zinc-800 flex-shrink-0"
+                        />
+                        <span className="text-xs font-bold text-white/70">{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                     <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => handlePresetAvatar(preset.url)}
-                      disabled={uploadingAvatar}
-                      className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-[#007F8E]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => setSelectedCategory(null)}
+                      className="flex items-center gap-2 text-[10px] font-bold text-[#007F8E] uppercase tracking-widest hover:opacity-70 transition-opacity"
                     >
-                      <img
-                        src={`${preset.url}${preset.id}`}
-                        alt={preset.name}
-                        className="w-10 h-10 rounded-lg bg-zinc-800 flex-shrink-0"
-                      />
-                      <span className="text-xs font-bold text-white/70">{preset.name}</span>
+                      <ArrowLeft size={14} />
+                      Voltar para Categorias
                     </button>
-                  ))}
-                </div>
+                    
+                    <div className="grid grid-cols-4 gap-3">
+                      {previewSeeds.map((seed, idx) => (
+                        <button
+                          key={seed}
+                          type="button"
+                          onClick={() => handlePresetAvatar(selectedCategory, seed)}
+                          disabled={uploadingAvatar}
+                          className="relative aspect-square rounded-xl bg-zinc-800 border border-white/5 hover:border-[#007F8E]/60 transition-all group overflow-hidden"
+                        >
+                          <img
+                            src={`${selectedCategory.url}${seed}`}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-[#007F8E]/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Check size={20} className="text-white" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => handlePresetAvatar(selectedCategory)}
+                      className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold text-white/40 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all"
+                    >
+                      Gerar novas opções
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

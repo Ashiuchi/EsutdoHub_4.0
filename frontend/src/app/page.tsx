@@ -2,6 +2,7 @@ import { Users } from "lucide-react";
 import SocialFeed from "@/components/social/SocialFeed";
 import ThemeBackground from "@/components/ThemeBackground";
 import TrendingEditais from "@/components/home/TrendingEditais";
+import VideoHero from "@/components/home/VideoHero";
 
 const GRUPOS = [
   { name: "Concursos Federais", members: "2,4k membros" },
@@ -19,7 +20,8 @@ export default function Home() {
       {/* Page layout */}
       <div className="flex gap-6 p-6 max-w-[1100px] mx-auto relative z-10">
         {/* ── Feed ──────────────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-6">
+          <VideoHero />
           <SocialFeed />
         </div>
 

@@ -4,6 +4,9 @@ import asyncio
 import hashlib
 from pathlib import Path
 
+import requests
+
+from app.core.config import settings
 from app.services.ai_service import AIService
 from app.services.geometric_engine import GeometricEngine
 from app.services.subtractive_service import SubtractiveAgent
@@ -33,6 +36,13 @@ async def moenda_industrial():
     subtractive = SubtractiveAgent()
 
     while True:
+        try:
+            requests.get(f"{settings.ollama_url.rstrip('/')}/api/tags", timeout=10).raise_for_status()
+        except requests.RequestException as exc:
+            logger.warning(f"⚠️ Ollama indisponível, aguardando recuperação: {exc}")
+            await asyncio.sleep(60)
+            continue
+
         files = sorted(list(STORAGE_SOURCE.glob("*.pdf")))
         total = len(files)
         logger.info(f"📂 Escaneando {total} arquivos em {STORAGE_SOURCE}")
